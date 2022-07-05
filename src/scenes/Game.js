@@ -8,11 +8,42 @@ class Game extends Phaser.Scene {
   init(data) {}
 
   preload() {
-    this.load.image('logo', 'assets/phaser3-logo.png');
+    this.load.json('tetrominoes', 'assets/tetrominoes.json');
   }
 
   create(data) {
-    this.add.image(400, 300, 'logo');
+    const HEXToVBColor = (rrggbb) => {
+      var bbggrr = rrggbb.substr(4, 2) + rrggbb.substr(2, 2) + rrggbb.substr(0, 2);
+      return parseInt(bbggrr, 16);
+    }
+    
+    const randomHexColor = () => {
+      const letters = '0123456789ABCDEF';
+      let color = '#';
+      for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+      }
+      return HEXToVBColor(color);
+    };
+
+    // draw tetromino
+    const tetrominoes = this.cache.json.get('tetrominoes');
+    console.log(tetrominoes);
+    const j = tetrominoes.j;
+    j.forEach((row, yIndex) => {
+      row.forEach((bit, xIndex) => {
+        const hexRed = 0xff0000;
+        const hexBlack = 0x000000;
+        const width = 20;
+        const height = 20;
+        const x = width/2 + xIndex * width;
+        const y = height/2 + yIndex * height;
+        if (bit) {
+          const mino = this.add.rectangle(x, y, width, height, hexRed);
+          mino.setStrokeStyle(1, hexBlack);
+        }
+      });
+    });
   }
 
   update(time, delta) {}
