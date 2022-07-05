@@ -12,20 +12,6 @@ class Game extends Phaser.Scene {
   }
 
   create(data) {
-    const HEXToVBColor = (rrggbb) => {
-      var bbggrr = rrggbb.substr(4, 2) + rrggbb.substr(2, 2) + rrggbb.substr(0, 2);
-      return parseInt(bbggrr, 16);
-    }
-    
-    const randomHexColor = () => {
-      const letters = '0123456789ABCDEF';
-      let color = '#';
-      for (let i = 0; i < 6; i++) {
-        color += letters[Math.floor(Math.random() * 16)];
-      }
-      return HEXToVBColor(color);
-    };
-
     // draw tetromino
     const tetrominoes = this.cache.json.get('tetrominoes');
     console.log(tetrominoes);
