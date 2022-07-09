@@ -1,27 +1,34 @@
 import Phaser from "phaser";
 import { colors } from "../colors";
 
+const minoHeight = 20;
+const minoWidth = 20;
+
 class Game extends Phaser.Scene {
   constructor() {
     super({ key: "GameScene" });
+    this.level = 1;
+    this.yDelta = 0;
   }
 
   init(data) {}
 
   preload() {
     this.load.json("tetrominoes", "assets/tetrominoes.json");
+    this.load.json("gravity", "assets/gravity.json");
   }
 
   create(data) {
     // draw tetrominos
 
     const tetrominoes = this.cache.json.get("tetrominoes");
-    this.drawTetromino(
+    this.tetromino = this.drawTetromino(
       tetrominoes.i[0],
       { x: 0, y: 0 },
       colors.hexLightBlue,
       colors.hexBlack
     );
+
     this.drawTetromino(
       tetrominoes.j[0],
       { x: 80, y: 0 },
@@ -61,25 +68,46 @@ class Game extends Phaser.Scene {
   }
 
   drawTetromino(tetromino, coord, fillColor, strokeColor) {
+    const container = this.add.container();
     tetromino.forEach((row, yIndex) => {
       row.forEach((bit, xIndex) => {
-        const width = 20;
-        const height = 20;
-        const x = coord.x + width / 2 + xIndex * width;
-        const y = coord.y + height / 2 + yIndex * height;
+        const x = coord.x + minoWidth / 2 + xIndex * minoWidth;
+        const y = coord.y + minoHeight / 2 + yIndex * minoHeight;
         if (bit) {
-          this.drawMino(x, y, width, height, fillColor, strokeColor);
+          const mino = this.drawMino(
+            x,
+            y,
+            minoWidth,
+            minoHeight,
+            fillColor,
+            strokeColor
+          );
+          container.add(mino);
         }
       });
     });
+    return container;
   }
 
   drawMino(x, y, width, height, fillColor, strokeColor) {
     const mino = this.add.rectangle(x, y, width, height, fillColor);
     mino.setStrokeStyle(1, strokeColor);
+    return mino;
   }
 
-  update(time, delta) {}
+  update(time, delta) {
+    // assuming 60fps
+
+    const gravityJson = this.cache.json.get("gravity");
+    const gravity = gravityJson[this.level];
+
+    // 1G = 1 mino per frame
+    this.yDelta += gravity * minoHeight;
+    if (this.yDelta >= minoHeight) {
+      this.tetromino.y += minoHeight;
+      this.yDelta = this.yDelta % minoHeight;
+    }
+  }
 }
 
 export default Game;
