@@ -3,38 +3,41 @@ import { colors } from "../colors";
 
 const minoHeight = 20;
 const minoWidth = 20;
+const boardY = 0;
 const boardColumns = 10;
 const boardRows = 20;
 
 class Game extends Phaser.Scene {
   constructor() {
     super({ key: "GameScene" });
-    this.level = 1;
+    this.level = 8;
     this.yDelta = 0;
   }
 
   init(data) {}
 
   preload() {
-    this.load.json("tetrominoes", "assets/tetrominoes.json");
     this.load.json("gravity", "assets/gravity.json");
+    this.load.json("tetrominoColors", "assets/tetrominoColors.json");
+    this.load.json("tetrominoes", "assets/tetrominoes.json");
   }
 
   create(data) {
     // draw tetrominos
 
     const tetrominoes = this.cache.json.get("tetrominoes");
-    this.tetromino = this.createTetromino(
+    const tetrominoColors = this.cache.json.get("tetrominoColors");
+    this.createTetromino(
       tetrominoes.i[0],
       { x: 0, y: 0 },
-      colors.hexLightBlue,
+      tetrominoColors["i"],
       colors.hexBlack
     );
 
     this.createTetromino(
       tetrominoes.j[0],
       { x: 80, y: 0 },
-      colors.hexBlue,
+      tetrominoColors["j"],
       colors.hexBlack
     );
     this.createTetromino(
@@ -67,6 +70,27 @@ class Game extends Phaser.Scene {
       colors.hexRed,
       colors.hexBlack
     );
+
+    this.tetromino = this.createRandomTetromino();
+  }
+
+  createRandomTetromino() {
+    const tetrominoEntries = Object.entries(this.cache.json.get("tetrominoes"));
+    const tetrominoColors = this.cache.json.get("tetrominoColors");
+
+    const randomIndex = Phaser.Math.Between(0, tetrominoEntries.length - 1);
+    const randomTetrominoEntry = tetrominoEntries[randomIndex];
+    const tetrominoName = randomTetrominoEntry[0];
+    const tetrominoRotations = randomTetrominoEntry[1];
+    const tetrominoJSON = tetrominoRotations[0];
+    const tetrominoColor = tetrominoColors[tetrominoName];
+    const randomTetromino = this.createTetromino(
+      tetrominoJSON,
+      { x: 0, y: 0 },
+      tetrominoColor,
+      colors.hexBlack
+    );
+    return randomTetromino;
   }
 
   createTetromino(tetromino, coord, fillColor, strokeColor) {
@@ -100,6 +124,12 @@ class Game extends Phaser.Scene {
   update(time, delta) {
     // assuming 60fps
 
+    const bottomOfTetromino = this.tetromino.getBounds().bottom;
+    const bottomOfBoard = boardY + boardRows * minoHeight;
+    if (bottomOfTetromino >= bottomOfBoard) {
+      this.yDelta = 0;
+      this.tetromino = this.createRandomTetromino();
+    }
     const gravityJson = this.cache.json.get("gravity");
     const gravity = gravityJson[this.level];
 
