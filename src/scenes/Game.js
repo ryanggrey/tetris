@@ -16,7 +16,6 @@ class Game extends Phaser.Scene {
     // draw tetrominos
 
     const tetrominoes = this.cache.json.get("tetrominoes");
-    console.log(tetrominoes);
     this.drawTetromino(
       tetrominoes.i[0],
       { x: 0, y: 0 },
