@@ -3,6 +3,8 @@ import { colors } from "../colors";
 
 const minoHeight = 20;
 const minoWidth = 20;
+const boardColumns = 10;
+const boardRows = 20;
 
 class Game extends Phaser.Scene {
   constructor() {
@@ -22,44 +24,44 @@ class Game extends Phaser.Scene {
     // draw tetrominos
 
     const tetrominoes = this.cache.json.get("tetrominoes");
-    this.tetromino = this.drawTetromino(
+    this.tetromino = this.createTetromino(
       tetrominoes.i[0],
       { x: 0, y: 0 },
       colors.hexLightBlue,
       colors.hexBlack
     );
 
-    this.drawTetromino(
+    this.createTetromino(
       tetrominoes.j[0],
       { x: 80, y: 0 },
       colors.hexBlue,
       colors.hexBlack
     );
-    this.drawTetromino(
+    this.createTetromino(
       tetrominoes.l[0],
       { x: 140, y: 0 },
       colors.hexOrange,
       colors.hexBlack
     );
-    this.drawTetromino(
+    this.createTetromino(
       tetrominoes.o[0],
       { x: 200, y: 0 },
       colors.hexYellow,
       colors.hexBlack
     );
-    this.drawTetromino(
+    this.createTetromino(
       tetrominoes.s[0],
       { x: 280, y: 0 },
       colors.hexGreen,
       colors.hexBlack
     );
-    this.drawTetromino(
+    this.createTetromino(
       tetrominoes.t[0],
       { x: 340, y: 0 },
       colors.hexPink,
       colors.hexBlack
     );
-    this.drawTetromino(
+    this.createTetromino(
       tetrominoes.z[0],
       { x: 400, y: 0 },
       colors.hexRed,
@@ -67,14 +69,14 @@ class Game extends Phaser.Scene {
     );
   }
 
-  drawTetromino(tetromino, coord, fillColor, strokeColor) {
+  createTetromino(tetromino, coord, fillColor, strokeColor) {
     const container = this.add.container();
     tetromino.forEach((row, yIndex) => {
       row.forEach((bit, xIndex) => {
         const x = coord.x + minoWidth / 2 + xIndex * minoWidth;
         const y = coord.y + minoHeight / 2 + yIndex * minoHeight;
         if (bit) {
-          const mino = this.drawMino(
+          const mino = this.createMino(
             x,
             y,
             minoWidth,
@@ -89,7 +91,7 @@ class Game extends Phaser.Scene {
     return container;
   }
 
-  drawMino(x, y, width, height, fillColor, strokeColor) {
+  createMino(x, y, width, height, fillColor, strokeColor) {
     const mino = this.add.rectangle(x, y, width, height, fillColor);
     mino.setStrokeStyle(1, strokeColor);
     return mino;
@@ -107,7 +109,6 @@ class Game extends Phaser.Scene {
       const quotient = Math.floor(this.yDelta / minoHeight);
       const yDelta = quotient * minoHeight;
       const remainder = this.yDelta % minoHeight;
-      console.log(yDelta, remainder);
 
       this.tetromino.y += yDelta;
       this.yDelta = remainder;
