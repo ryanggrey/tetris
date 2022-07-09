@@ -104,8 +104,13 @@ class Game extends Phaser.Scene {
     // 1G = 1 mino per frame
     this.yDelta += gravity * minoHeight;
     if (this.yDelta >= minoHeight) {
-      this.tetromino.y += minoHeight;
-      this.yDelta = this.yDelta % minoHeight;
+      const quotient = Math.floor(this.yDelta / minoHeight);
+      const yDelta = quotient * minoHeight;
+      const remainder = this.yDelta % minoHeight;
+      console.log(yDelta, remainder);
+
+      this.tetromino.y += yDelta;
+      this.yDelta = remainder;
     }
   }
 }
