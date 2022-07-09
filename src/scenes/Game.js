@@ -18,45 +18,45 @@ class Game extends Phaser.Scene {
     const tetrominoes = this.cache.json.get("tetrominoes");
     console.log(tetrominoes);
     this.drawTetromino(
-      tetrominoes.j,
+      tetrominoes.i[0],
       { x: 0, y: 0 },
+      colors.hexLightBlue,
+      colors.hexBlack
+    );
+    this.drawTetromino(
+      tetrominoes.j[0],
+      { x: 80, y: 0 },
       colors.hexBlue,
       colors.hexBlack
     );
     this.drawTetromino(
-      tetrominoes.l,
-      { x: 60, y: 0 },
+      tetrominoes.l[0],
+      { x: 140, y: 0 },
       colors.hexOrange,
       colors.hexBlack
     );
     this.drawTetromino(
-      tetrominoes.o,
-      { x: 120, y: 0 },
+      tetrominoes.o[0],
+      { x: 200, y: 0 },
       colors.hexYellow,
       colors.hexBlack
     );
     this.drawTetromino(
-      tetrominoes.s,
-      { x: 160, y: 0 },
+      tetrominoes.s[0],
+      { x: 280, y: 0 },
       colors.hexGreen,
       colors.hexBlack
     );
     this.drawTetromino(
-      tetrominoes.t,
-      { x: 220, y: 0 },
+      tetrominoes.t[0],
+      { x: 340, y: 0 },
       colors.hexPink,
       colors.hexBlack
     );
     this.drawTetromino(
-      tetrominoes.z,
-      { x: 280, y: 0 },
+      tetrominoes.z[0],
+      { x: 400, y: 0 },
       colors.hexRed,
-      colors.hexBlack
-    );
-    this.drawTetromino(
-      tetrominoes.i,
-      { x: 340, y: 0 },
-      colors.hexLightBlue,
       colors.hexBlack
     );
   }
