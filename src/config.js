@@ -1,9 +1,9 @@
-import Phaser from 'phaser';
+import Phaser from "phaser";
 
 export default {
   type: Phaser.AUTO,
-  parent: 'game',
-  backgroundColor: '#33A5E7',
+  parent: "game",
+  backgroundColor: "#33A5E7",
   scale: {
     width: 800,
     height: 600,
