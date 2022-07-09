@@ -61,6 +61,9 @@ class Game extends Phaser.Scene {
   }
 
   drawTetromino(tetromino, coord, fillColor, strokeColor) {
+    const tetrominoGroup = this.physics.add.group({
+      collideWorldBounds: true,
+    });
     tetromino.forEach((row, yIndex) => {
       row.forEach((bit, xIndex) => {
         const width = 20;
@@ -68,7 +71,15 @@ class Game extends Phaser.Scene {
         const x = coord.x + width / 2 + xIndex * width;
         const y = coord.y + height / 2 + yIndex * height;
         if (bit) {
-          this.drawMino(x, y, width, height, fillColor, strokeColor);
+          const mino = this.drawMino(
+            x,
+            y,
+            width,
+            height,
+            fillColor,
+            strokeColor
+          );
+          tetrominoGroup.add(mino);
         }
       });
     });
@@ -77,6 +88,7 @@ class Game extends Phaser.Scene {
   drawMino(x, y, width, height, fillColor, strokeColor) {
     const mino = this.add.rectangle(x, y, width, height, fillColor);
     mino.setStrokeStyle(1, strokeColor);
+    return mino;
   }
 
   update(time, delta) {}
