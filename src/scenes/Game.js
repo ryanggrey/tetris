@@ -9,8 +9,6 @@ const boardRows = 20;
 class Game extends Phaser.Scene {
   constructor() {
     super({ key: "GameScene" });
-    this.level = 8;
-    this.yDelta = 0;
   }
 
   init(data) {}
@@ -22,8 +20,12 @@ class Game extends Phaser.Scene {
   }
 
   create(data) {
+    this.level = 8;
+    this.yDelta = 0;
+    this.gameOver = false;
     this.createBoard();
     this.tetromino = this.createRandomTetromino();
+    this.staticTetrominoes = this.add.container();
   }
 
   createBoard() {
@@ -54,9 +56,9 @@ class Game extends Phaser.Scene {
     const tetrominoJSON = tetrominoRotations[0];
     const tetrominoColor = tetrominoColors[tetrominoName];
 
-    // spawn in top 2 rows, at column index 3 (4th column)
+    // spawn in top -2 rows, at column index 3 (4th column)
     const x = this.board.x + 3 * minoWidth;
-    const y = this.board.y + 0 * minoHeight;
+    const y = this.board.y + -2 * minoHeight;
     const randomTetromino = this.createTetromino(
       tetrominoJSON,
       { x, y },
@@ -95,14 +97,35 @@ class Game extends Phaser.Scene {
     return mino;
   }
 
+  endGame() {
+    this.gameOver = true;
+    this.level = 1;
+    this.yDelta = 0;
+    this.staticTetrominoes = this.add.container();
+  }
+
   update(time, delta) {
+    if (this.gameOver) {
+      return;
+    }
+
     // assuming 60fps
 
-    // stop tetromino if it hits the bottom
     const bottomOfTetromino = this.tetromino.getBounds().bottom;
     const bottomOfBoard = this.board.y + boardRows * minoHeight;
-    if (bottomOfTetromino >= bottomOfBoard) {
+    const isAtBottom = bottomOfTetromino >= bottomOfBoard;
+
+    // stop tetromino if it hits the bottom or another tetromino
+    if (isAtBottom || this.isOnAStaticTetromino()) {
       this.yDelta = 0;
+      this.staticTetrominoes.add(this.tetromino);
+
+      // if above the board, game over
+      if (this.tetromino.getBounds().top < this.board.y) {
+        this.endGame();
+        return;
+      }
+
       this.tetromino = this.createRandomTetromino();
     }
 
@@ -118,6 +141,26 @@ class Game extends Phaser.Scene {
       this.tetromino.y += yDelta;
       this.yDelta = remainder;
     }
+  }
+
+  isOnAStaticTetromino(tetromino) {
+    var isOnAnotherTetromino = false;
+    const staticTetrominoes = this.staticTetrominoes;
+    staticTetrominoes.list.forEach((staticTetromino) => {
+      staticTetromino.list.forEach((staticMino) => {
+        this.tetromino.list.forEach((mino) => {
+          const staticLeft = staticMino.x;
+          const activeLeft = mino.x;
+          const staticTop = staticMino.getBounds().top;
+          const activeBottom = mino.getBounds().bottom;
+
+          isOnAnotherTetromino =
+            isOnAnotherTetromino ||
+            (staticLeft === activeLeft && staticTop === activeBottom);
+        });
+      });
+    });
+    return isOnAnotherTetromino;
   }
 }
 
