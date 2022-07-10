@@ -1,4 +1,6 @@
 {
   "das": 10,
-  "arr": 3
+  "arr": 3,
+  "lockDelay": 30,
+  "lockMoveLimit": 15
 }

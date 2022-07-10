@@ -20,19 +20,22 @@ class Game extends Phaser.Scene {
     this.load.json("tetrominoes", "assets/tetrominoes.json");
   }
 
-  resetDas() {
+  resetCounters() {
+    // Delayed Auto Shift (DAS) counter
     this.rightDasCounter = 0;
     this.leftDasCounter = 0;
     // Auto Repeat Rate (ARR) counter
     this.rightArrCounter = 0;
     this.leftArrCounter = 0;
+
+    this.lockDelayCounter = 0;
+    this.lockMoveCounter = 0;
   }
 
   reset() {
     this.level = 8;
     this.yDelta = 0;
-    // Delayed Auto Shift (DAS) counter
-    this.resetDas();
+    this.resetCounters();
     this.staticTetrominoes = this.add.container();
   }
 
@@ -139,7 +142,7 @@ class Game extends Phaser.Scene {
 
     // assuming 60fps
 
-    const { das, arr } = this.cache.json.get("speed");
+    const { das, arr, lockDelay, lockMoveLimit } = this.cache.json.get("speed");
 
     if (this.keyRight.isDown) {
       if (this.rightDasCounter === 0) {
@@ -181,14 +184,9 @@ class Game extends Phaser.Scene {
       this.leftArrCounter = 0;
     }
 
-    // stop tetromino if it hits the bottom or another tetromino
-    const bottomOfTetromino = this.tetromino.getBounds().bottom;
-    const bottomOfBoard = this.board.y + boardRows * minoHeight;
-    const isAtBottom = bottomOfTetromino >= bottomOfBoard;
-
-    if (isAtBottom || this.isOnAStaticTetromino()) {
+    if (this.isLocking()) {
+      this.lockDelayCounter++;
       this.yDelta = 0;
-      this.staticTetrominoes.add(this.tetromino);
 
       // if above the board, game over
       if (this.tetromino.getBounds().top < this.board.y) {
@@ -196,7 +194,18 @@ class Game extends Phaser.Scene {
         return;
       }
 
-      this.spawnTetromino();
+      const isLockDelayReached = this.lockDelayCounter >= lockDelay;
+      const isLockMoveLimitReached = this.lockMoveCounter >= lockMoveLimit;
+      const isLocked = isLockDelayReached || isLockMoveLimitReached;
+
+      if (isLocked) {
+        console.log("lockDelayCounter", this.lockDelayCounter);
+        console.log("lockMoveCounter", this.lockMoveCounter);
+        this.lockDelayCounter = 0;
+        this.lockMoveCounter = 0;
+        this.staticTetrominoes.add(this.tetromino);
+        this.spawnTetromino();
+      }
     }
 
     // apply gravity, where 1G = 1 mino per frame
@@ -213,10 +222,27 @@ class Game extends Phaser.Scene {
     }
   }
 
+  isLocking() {
+    // stop tetromino if it hits the bottom or another tetromino
+    const bottomOfTetromino = this.tetromino.getBounds().bottom;
+    const bottomOfBoard = this.board.y + boardRows * minoHeight;
+    const isAtBottom = bottomOfTetromino >= bottomOfBoard;
+
+    return isAtBottom || this.isOnAStaticTetromino();
+  }
+
+  updateLockCountersForMove() {
+    if (this.isLocking()) {
+      this.lockDelayCounter = 0;
+      this.lockMoveCounter++;
+    }
+  }
+
   shiftLeft() {
     const potentialX = this.tetromino.getBounds().left - minoWidth;
     if (potentialX >= this.board.getBounds().left) {
       this.tetromino.x -= minoWidth;
+      this.updateLockCountersForMove();
     }
   }
 
@@ -224,7 +250,13 @@ class Game extends Phaser.Scene {
     const potentialX = this.tetromino.getBounds().right + minoWidth;
     if (potentialX <= this.board.getBounds().right) {
       this.tetromino.x += minoWidth;
+      this.updateLockCountersForMove();
     }
+  }
+
+  rotate() {
+    // rotate
+    this.updateLockCountersForMove();
   }
 
   isOnAStaticTetromino() {
