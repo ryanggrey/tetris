@@ -15,18 +15,34 @@ class Game extends Phaser.Scene {
 
   preload() {
     this.load.json("gravity", "assets/gravity.json");
+    this.load.json("speed", "assets/speed.json");
     this.load.json("tetrominoColors", "assets/tetrominoColors.json");
     this.load.json("tetrominoes", "assets/tetrominoes.json");
   }
 
-  create(data) {
+  resetDas() {
+    this.rightDasCounter = 0;
+    this.leftDasCounter = 0;
+    // Auto Repeat Rate (ARR) counter
+    this.rightArrCounter = 0;
+    this.leftArrCounter = 0;
+  }
+
+  reset() {
     this.level = 8;
     this.yDelta = 0;
-    this.gameOver = false;
+    // Delayed Auto Shift (DAS) counter
+    this.resetDas();
+    this.staticTetrominoes = this.add.container();
+  }
+
+  create(data) {
+    this.reset();
+
     this.createControls();
     this.createBoard();
-    this.tetromino = this.createRandomTetromino();
-    this.staticTetrominoes = this.add.container();
+    this.spawnTetromino();
+    this.gameOver = false;
   }
 
   createControls() {
@@ -59,7 +75,7 @@ class Game extends Phaser.Scene {
     this.board.setStrokeStyle(1, colors.hexBlack);
   }
 
-  createRandomTetromino() {
+  spawnTetromino() {
     const tetrominoEntries = Object.entries(this.cache.json.get("tetrominoes"));
     const tetrominoColors = this.cache.json.get("tetrominoColors");
 
@@ -79,7 +95,7 @@ class Game extends Phaser.Scene {
       tetrominoColor,
       colors.hexBlack
     );
-    return randomTetromino;
+    this.tetromino = randomTetromino;
   }
 
   createTetromino(tetromino, coord, fillColor, strokeColor) {
@@ -112,10 +128,8 @@ class Game extends Phaser.Scene {
   }
 
   endGame() {
+    this.reset();
     this.gameOver = true;
-    this.level = 1;
-    this.yDelta = 0;
-    this.staticTetrominoes = this.add.container();
   }
 
   update(time, delta) {
@@ -125,12 +139,46 @@ class Game extends Phaser.Scene {
 
     // assuming 60fps
 
+    const { das, arr } = this.cache.json.get("speed");
+
     if (this.keyRight.isDown) {
-      this.tetromino.x += minoWidth;
+      if (this.rightDasCounter === 0) {
+        this.tetromino.x += minoWidth;
+      }
+      const shouldAutoRepeat = this.rightDasCounter >= das;
+      if (shouldAutoRepeat) {
+        this.rightArrCounter++;
+        if (this.rightArrCounter >= arr) {
+          this.rightArrCounter = 0;
+          this.tetromino.x += minoWidth;
+        }
+      }
+      this.rightDasCounter++;
+    }
+
+    if (this.keyRight.isUp) {
+      this.rightDasCounter = 0;
+      this.rightArrCounter = 0;
     }
 
     if (this.keyLeft.isDown) {
-      this.tetromino.x -= minoWidth;
+      if (this.leftDasCounter === 0) {
+        this.tetromino.x -= minoWidth;
+      }
+      const shouldAutoRepeat = this.leftDasCounter >= das;
+      if (shouldAutoRepeat) {
+        this.leftArrCounter++;
+        if (this.leftArrCounter >= arr) {
+          this.leftArrCounter = 0;
+          this.tetromino.x -= minoWidth;
+        }
+      }
+      this.leftDasCounter++;
+    }
+
+    if (this.keyLeft.isUp) {
+      this.leftDasCounter = 0;
+      this.leftArrCounter = 0;
     }
 
     // stop tetromino if it hits the bottom or another tetromino
@@ -148,7 +196,7 @@ class Game extends Phaser.Scene {
         return;
       }
 
-      this.tetromino = this.createRandomTetromino();
+      this.spawnTetromino();
     }
 
     // apply gravity, where 1G = 1 mino per frame
