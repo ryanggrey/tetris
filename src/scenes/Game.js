@@ -23,9 +23,23 @@ class Game extends Phaser.Scene {
     this.level = 8;
     this.yDelta = 0;
     this.gameOver = false;
+    this.createControls();
     this.createBoard();
     this.tetromino = this.createRandomTetromino();
     this.staticTetrominoes = this.add.container();
+  }
+
+  createControls() {
+    this.keyUp = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP);
+    this.keyRight = this.input.keyboard.addKey(
+      Phaser.Input.Keyboard.KeyCodes.RIGHT
+    );
+    this.keyLeft = this.input.keyboard.addKey(
+      Phaser.Input.Keyboard.KeyCodes.LEFT
+    );
+    this.keyDown = this.input.keyboard.addKey(
+      Phaser.Input.Keyboard.KeyCodes.DOWN
+    );
   }
 
   createBoard() {
@@ -111,11 +125,19 @@ class Game extends Phaser.Scene {
 
     // assuming 60fps
 
+    if (this.keyRight.isDown) {
+      this.tetromino.x += minoWidth;
+    }
+
+    if (this.keyLeft.isDown) {
+      this.tetromino.x -= minoWidth;
+    }
+
+    // stop tetromino if it hits the bottom or another tetromino
     const bottomOfTetromino = this.tetromino.getBounds().bottom;
     const bottomOfBoard = this.board.y + boardRows * minoHeight;
     const isAtBottom = bottomOfTetromino >= bottomOfBoard;
 
-    // stop tetromino if it hits the bottom or another tetromino
     if (isAtBottom || this.isOnAStaticTetromino()) {
       this.yDelta = 0;
       this.staticTetrominoes.add(this.tetromino);
