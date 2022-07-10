@@ -233,14 +233,14 @@ class Game extends Phaser.Scene {
     staticTetrominoes.list.forEach((staticTetromino) => {
       staticTetromino.list.forEach((staticMino) => {
         this.tetromino.list.forEach((mino) => {
-          const staticLeft = staticMino.x;
-          const activeLeft = mino.x;
+          const staticLeft = staticMino.getBounds().left;
+          const activeLeft = mino.getBounds().left;
           const staticTop = staticMino.getBounds().top;
           const activeBottom = mino.getBounds().bottom;
 
-          isOnAnotherTetromino =
-            isOnAnotherTetromino ||
-            (staticLeft === activeLeft && staticTop === activeBottom);
+          const isSameColumn = staticLeft === activeLeft;
+          const isOnTop = staticTop === activeBottom;
+          isOnAnotherTetromino ||= isSameColumn && isOnTop;
         });
       });
     });
