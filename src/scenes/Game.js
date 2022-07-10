@@ -143,14 +143,14 @@ class Game extends Phaser.Scene {
 
     if (this.keyRight.isDown) {
       if (this.rightDasCounter === 0) {
-        this.tetromino.x += minoWidth;
+        this.shiftRight();
       }
       const shouldAutoRepeat = this.rightDasCounter >= das;
       if (shouldAutoRepeat) {
         this.rightArrCounter++;
         if (this.rightArrCounter >= arr) {
           this.rightArrCounter = 0;
-          this.tetromino.x += minoWidth;
+          this.shiftRight();
         }
       }
       this.rightDasCounter++;
@@ -163,14 +163,14 @@ class Game extends Phaser.Scene {
 
     if (this.keyLeft.isDown) {
       if (this.leftDasCounter === 0) {
-        this.tetromino.x -= minoWidth;
+        this.shiftLeft();
       }
       const shouldAutoRepeat = this.leftDasCounter >= das;
       if (shouldAutoRepeat) {
         this.leftArrCounter++;
         if (this.leftArrCounter >= arr) {
           this.leftArrCounter = 0;
-          this.tetromino.x -= minoWidth;
+          this.shiftLeft();
         }
       }
       this.leftDasCounter++;
@@ -213,7 +213,21 @@ class Game extends Phaser.Scene {
     }
   }
 
-  isOnAStaticTetromino(tetromino) {
+  shiftLeft() {
+    const potentialX = this.tetromino.getBounds().left - minoWidth;
+    if (potentialX >= this.board.getBounds().left) {
+      this.tetromino.x -= minoWidth;
+    }
+  }
+
+  shiftRight() {
+    const potentialX = this.tetromino.getBounds().right + minoWidth;
+    if (potentialX <= this.board.getBounds().right) {
+      this.tetromino.x += minoWidth;
+    }
+  }
+
+  isOnAStaticTetromino() {
     var isOnAnotherTetromino = false;
     const staticTetrominoes = this.staticTetrominoes;
     staticTetrominoes.list.forEach((staticTetromino) => {
