@@ -239,16 +239,48 @@ class Game extends Phaser.Scene {
   }
 
   shiftLeft() {
-    const potentialX = this.tetromino.getBounds().left - minoWidth;
-    if (potentialX >= this.board.getBounds().left) {
+    const tetrominoLeft = this.tetromino.getBounds().left;
+    const boardLeft = this.board.getBounds().left;
+    const isAgainstWall = tetrominoLeft === boardLeft;
+    var isAgainstStaticTetromino = false;
+    this.staticTetrominoes.list.forEach((staticTetromino) => {
+      staticTetromino.list.forEach((staticMino) => {
+        this.tetromino.list.forEach((mino) => {
+          const minoLeft = mino.getBounds().left;
+          const staticMinoRight = staticMino.getBounds().right;
+          const isAgainstStaticMino = minoLeft === staticMinoRight;
+          const isSameRow = mino.getBounds().top === staticMino.getBounds().top;
+          isAgainstStaticTetromino ||= isAgainstStaticMino && isSameRow;
+        });
+      });
+    });
+    const canShift = !isAgainstWall && !isAgainstStaticTetromino;
+
+    if (canShift) {
       this.tetromino.x -= minoWidth;
       this.updateLockCountersForMove();
     }
   }
 
   shiftRight() {
-    const potentialX = this.tetromino.getBounds().right + minoWidth;
-    if (potentialX <= this.board.getBounds().right) {
+    const tetrominoRight = this.tetromino.getBounds().right;
+    const boardRight = this.board.getBounds().right;
+    const isAgainstWall = tetrominoRight === boardRight;
+    var isAgainstStaticTetromino = false;
+    this.staticTetrominoes.list.forEach((staticTetromino) => {
+      staticTetromino.list.forEach((staticMino) => {
+        this.tetromino.list.forEach((mino) => {
+          const minoRight = mino.getBounds().right;
+          const staticMinoLeft = staticMino.getBounds().left;
+          const isAgainstStaticMino = minoRight === staticMinoLeft;
+          const isSameRow = mino.getBounds().top === staticMino.getBounds().top;
+          isAgainstStaticTetromino ||= isAgainstStaticMino && isSameRow;
+        });
+      });
+    });
+    const canShift = !isAgainstWall && !isAgainstStaticTetromino;
+
+    if (canShift) {
       this.tetromino.x += minoWidth;
       this.updateLockCountersForMove();
     }
@@ -261,8 +293,7 @@ class Game extends Phaser.Scene {
 
   isOnAStaticTetromino() {
     var isOnAnotherTetromino = false;
-    const staticTetrominoes = this.staticTetrominoes;
-    staticTetrominoes.list.forEach((staticTetromino) => {
+    this.staticTetrominoes.list.forEach((staticTetromino) => {
       staticTetromino.list.forEach((staticMino) => {
         this.tetromino.list.forEach((mino) => {
           const staticLeft = staticMino.getBounds().left;
