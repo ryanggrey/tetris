@@ -20,7 +20,13 @@ class Game extends Phaser.Scene {
     this.load.json("tetrominoes", "assets/tetrominoes.json");
   }
 
-  resetCounters() {
+  reset() {
+    this.level = 8;
+    this.yDelta = 0;
+
+    this.isRotating = false;
+    this.rotationDelayCounter = 0;
+
     // Delayed Auto Shift (DAS) counter
     this.rightDasCounter = 0;
     this.leftDasCounter = 0;
@@ -30,12 +36,6 @@ class Game extends Phaser.Scene {
 
     this.lockDelayCounter = 0;
     this.lockMoveCounter = 0;
-  }
-
-  reset() {
-    this.level = 8;
-    this.yDelta = 0;
-    this.resetCounters();
     this.staticTetrominoes = this.add.container();
   }
 
@@ -56,9 +56,7 @@ class Game extends Phaser.Scene {
     this.keyLeft = this.input.keyboard.addKey(
       Phaser.Input.Keyboard.KeyCodes.LEFT
     );
-    this.keyDown = this.input.keyboard.addKey(
-      Phaser.Input.Keyboard.KeyCodes.DOWN
-    );
+    this.keyUp = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP);
   }
 
   createBoard() {
@@ -86,7 +84,8 @@ class Game extends Phaser.Scene {
     const randomTetrominoEntry = tetrominoEntries[randomIndex];
     const tetrominoName = randomTetrominoEntry[0];
     const tetrominoRotations = randomTetrominoEntry[1];
-    const tetrominoJSON = tetrominoRotations[0];
+    const rotationIndex = 0;
+    const tetrominoJSON = tetrominoRotations[rotationIndex];
     const tetrominoColor = tetrominoColors[tetrominoName];
 
     // spawn in top -2 rows, at column index 3 (4th column)
@@ -98,7 +97,11 @@ class Game extends Phaser.Scene {
       tetrominoColor,
       colors.hexBlack
     );
-    this.tetromino = randomTetromino;
+    this.tetromino = {
+      name: tetrominoName,
+      rotation: rotationIndex,
+      container: randomTetromino,
+    };
   }
 
   createTetromino(tetromino, coord, fillColor, strokeColor) {
@@ -107,17 +110,19 @@ class Game extends Phaser.Scene {
       row.forEach((bit, xIndex) => {
         const x = coord.x + xIndex * minoWidth;
         const y = coord.y + yIndex * minoHeight;
-        if (bit) {
-          const mino = this.createMino(
-            x,
-            y,
-            minoWidth,
-            minoHeight,
-            fillColor,
-            strokeColor
-          );
-          container.add(mino);
-        }
+
+        const mino = this.createMino(
+          x,
+          y,
+          minoWidth,
+          minoHeight,
+          fillColor,
+          strokeColor
+        );
+        container.add(mino);
+
+        mino.canCollide = bit;
+        mino.setAlpha(bit ? 1 : 0);
       });
     });
     return container;
@@ -142,7 +147,17 @@ class Game extends Phaser.Scene {
 
     // assuming 60fps
 
-    const { das, arr, lockDelay, lockMoveLimit } = this.cache.json.get("speed");
+    const { das, arr, lockDelay, lockMoveLimit, rotationDelay } =
+      this.cache.json.get("speed");
+
+    if (this.isRotating) {
+      this.rotationDelayCounter++;
+    }
+
+    if (this.rotationDelayCounter == rotationDelay) {
+      this.rotationDelayCounter = 0;
+      this.isRotating = false;
+    }
 
     if (this.keyRight.isDown) {
       if (this.rightDasCounter === 0) {
@@ -184,12 +199,16 @@ class Game extends Phaser.Scene {
       this.leftArrCounter = 0;
     }
 
+    if (this.keyUp.isDown) {
+      this.rotate();
+    }
+
     if (this.isLocking()) {
       this.lockDelayCounter++;
       this.yDelta = 0;
 
       // if above the board, game over
-      if (this.tetromino.getBounds().top < this.board.y) {
+      if (this.tetromino.container.getBounds().top < this.board.y) {
         this.endGame();
         return;
       }
@@ -199,11 +218,9 @@ class Game extends Phaser.Scene {
       const isLocked = isLockDelayReached || isLockMoveLimitReached;
 
       if (isLocked) {
-        console.log("lockDelayCounter", this.lockDelayCounter);
-        console.log("lockMoveCounter", this.lockMoveCounter);
         this.lockDelayCounter = 0;
         this.lockMoveCounter = 0;
-        this.staticTetrominoes.add(this.tetromino);
+        this.staticTetrominoes.add(this.tetromino.container);
         this.spawnTetromino();
       }
     }
@@ -217,16 +234,20 @@ class Game extends Phaser.Scene {
       const yDelta = quotient * minoHeight;
       const remainder = this.yDelta % minoHeight;
 
-      this.tetromino.y += yDelta;
+      this.tetromino.container.y += yDelta;
       this.yDelta = remainder;
     }
   }
 
   isLocking() {
     // stop tetromino if it hits the bottom or another tetromino
-    const bottomOfTetromino = this.tetromino.getBounds().bottom;
-    const bottomOfBoard = this.board.y + boardRows * minoHeight;
-    const isAtBottom = bottomOfTetromino >= bottomOfBoard;
+
+    var isAtBottom = false;
+    this.tetromino.container.list.forEach((mino) => {
+      const minoBottom = mino.getBounds().bottom;
+      const boardBottom = this.board.y + boardRows * minoHeight;
+      isAtBottom ||= mino.canCollide && minoBottom >= boardBottom;
+    });
 
     return isAtBottom || this.isOnAStaticTetromino();
   }
@@ -239,63 +260,105 @@ class Game extends Phaser.Scene {
   }
 
   shiftLeft() {
-    const tetrominoLeft = this.tetromino.getBounds().left;
     const boardLeft = this.board.getBounds().left;
-    const isAgainstWall = tetrominoLeft === boardLeft;
     var isAgainstStaticTetromino = false;
-    this.staticTetrominoes.list.forEach((staticTetromino) => {
-      staticTetromino.list.forEach((staticMino) => {
-        this.tetromino.list.forEach((mino) => {
-          const minoLeft = mino.getBounds().left;
+    var isAgainstWall = false;
+    this.tetromino.container.list.forEach((mino) => {
+      const minoLeft = mino.getBounds().left;
+
+      isAgainstWall ||= minoLeft === boardLeft && mino.canCollide;
+      this.staticTetrominoes.list.forEach((staticTetromino) => {
+        staticTetromino.list.forEach((staticMino) => {
           const staticMinoRight = staticMino.getBounds().right;
           const isAgainstStaticMino = minoLeft === staticMinoRight;
           const isSameRow = mino.getBounds().top === staticMino.getBounds().top;
-          isAgainstStaticTetromino ||= isAgainstStaticMino && isSameRow;
+          const canCollide = staticMino.canCollide && mino.canCollide;
+          isAgainstStaticTetromino ||=
+            isAgainstStaticMino && isSameRow && canCollide;
         });
       });
     });
     const canShift = !isAgainstWall && !isAgainstStaticTetromino;
 
     if (canShift) {
-      this.tetromino.x -= minoWidth;
+      this.tetromino.container.x -= minoWidth;
       this.updateLockCountersForMove();
     }
   }
 
   shiftRight() {
-    const tetrominoRight = this.tetromino.getBounds().right;
     const boardRight = this.board.getBounds().right;
-    const isAgainstWall = tetrominoRight === boardRight;
     var isAgainstStaticTetromino = false;
-    this.staticTetrominoes.list.forEach((staticTetromino) => {
-      staticTetromino.list.forEach((staticMino) => {
-        this.tetromino.list.forEach((mino) => {
-          const minoRight = mino.getBounds().right;
+    var isAgainstWall = false;
+    this.tetromino.container.list.forEach((mino) => {
+      const minoRight = mino.getBounds().right;
+
+      isAgainstWall ||= minoRight === boardRight && mino.canCollide;
+      this.staticTetrominoes.list.forEach((staticTetromino) => {
+        staticTetromino.list.forEach((staticMino) => {
           const staticMinoLeft = staticMino.getBounds().left;
           const isAgainstStaticMino = minoRight === staticMinoLeft;
           const isSameRow = mino.getBounds().top === staticMino.getBounds().top;
-          isAgainstStaticTetromino ||= isAgainstStaticMino && isSameRow;
+          const canCollide = staticMino.canCollide && mino.canCollide;
+          isAgainstStaticTetromino ||=
+            isAgainstStaticMino && isSameRow && canCollide;
         });
       });
     });
     const canShift = !isAgainstWall && !isAgainstStaticTetromino;
 
     if (canShift) {
-      this.tetromino.x += minoWidth;
+      this.tetromino.container.x += minoWidth;
       this.updateLockCountersForMove();
     }
   }
 
   rotate() {
-    // rotate
+    if (this.isRotating) {
+      return;
+    }
+
+    const tetrominoes = this.cache.json.get("tetrominoes");
+    const tetrominoColors = this.cache.json.get("tetrominoColors");
+
+    const tetrominoName = this.tetromino.name;
+    const rotations = tetrominoes[tetrominoName];
+    const nextRotationIndex =
+      this.tetromino.rotation + 1 > 3 ? 0 : this.tetromino.rotation + 1;
+    const nextRotation = rotations[nextRotationIndex];
+
+    // spawn in the same position as the current tetromino
+    const x = this.tetromino.container.getBounds().x;
+    const y = this.tetromino.container.getBounds().y;
+
+    const tetrominoColor = tetrominoColors[tetrominoName];
+
+    this.tetromino.container.removeAll(true);
+    this.tetromino.container.remove();
+
+    const rotatedTetromino = this.createTetromino(
+      nextRotation,
+      { x, y },
+      tetrominoColor,
+      colors.hexBlack
+    );
+
+    this.tetromino = {
+      name: tetrominoName,
+      rotation: nextRotationIndex,
+      container: rotatedTetromino,
+    };
+
     this.updateLockCountersForMove();
+
+    this.isRotating = true;
   }
 
   isOnAStaticTetromino() {
     var isOnAnotherTetromino = false;
     this.staticTetrominoes.list.forEach((staticTetromino) => {
       staticTetromino.list.forEach((staticMino) => {
-        this.tetromino.list.forEach((mino) => {
+        this.tetromino.container.list.forEach((mino) => {
           const staticLeft = staticMino.getBounds().left;
           const activeLeft = mino.getBounds().left;
           const staticTop = staticMino.getBounds().top;
@@ -303,7 +366,8 @@ class Game extends Phaser.Scene {
 
           const isSameColumn = staticLeft === activeLeft;
           const isOnTop = staticTop === activeBottom;
-          isOnAnotherTetromino ||= isSameColumn && isOnTop;
+          const canCollide = staticMino.canCollide && mino.canCollide;
+          isOnAnotherTetromino ||= isSameColumn && isOnTop && canCollide;
         });
       });
     });
