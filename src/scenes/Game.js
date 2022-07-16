@@ -18,10 +18,11 @@ class Game extends Phaser.Scene {
     this.load.json("speed", "assets/speed.json");
     this.load.json("tetrominoColors", "assets/tetrominoColors.json");
     this.load.json("tetrominoes", "assets/tetrominoes.json");
+    this.load.json("wallkick", "assets/wallkick.json");
   }
 
   reset() {
-    this.level = 8;
+    this.level = 1;
     this.yDelta = 0;
 
     this.isRotating = false;
@@ -200,7 +201,7 @@ class Game extends Phaser.Scene {
     }
 
     if (this.keyUp.isDown) {
-      this.rotate();
+      this.rotateRight();
     }
 
     if (this.isLocking()) {
@@ -309,29 +310,29 @@ class Game extends Phaser.Scene {
     );
   }
 
-  cloneTetromino(rotationOffset = 0) {
+  cloneTetromino(sourceTetromino, rotationOffset = 0) {
     const tetrominoes = this.cache.json.get("tetrominoes");
     const tetrominoColors = this.cache.json.get("tetrominoColors");
 
-    const tetrominoName = this.tetromino.name;
+    const tetrominoName = sourceTetromino.name;
     const rotations = tetrominoes[tetrominoName];
 
-    var nextRotationIndex = this.tetromino.rotation + rotationOffset;
-    if (this.tetromino.rotation + rotationOffset >= rotations.length) {
+    var nextRotationIndex = sourceTetromino.rotation + rotationOffset;
+    if (sourceTetromino.rotation + rotationOffset >= rotations.length) {
       nextRotationIndex = 0;
     }
-    if (this.tetromino.rotation + rotationOffset < 0) {
+    if (sourceTetromino.rotation + rotationOffset < 0) {
       nextRotationIndex = rotations.length - 1;
     }
     const nextRotation = rotations[nextRotationIndex];
 
     // spawn in the same position as the current tetromino
-    const x = this.tetromino.shape.getBounds().left;
-    const y = this.tetromino.shape.getBounds().top;
+    const x = sourceTetromino.shape.getBounds().left;
+    const y = sourceTetromino.shape.getBounds().top;
 
     const tetrominoColor = tetrominoColors[tetrominoName];
 
-    const possibleTetromino = this.createTetromino(
+    const clone = this.createTetromino(
       nextRotation,
       { x, y },
       tetrominoColor,
@@ -341,14 +342,14 @@ class Game extends Phaser.Scene {
     const tetromino = {
       name: tetrominoName,
       rotation: nextRotationIndex,
-      shape: possibleTetromino,
+      shape: clone,
     };
 
     return tetromino;
   }
 
   shiftLeft() {
-    const possibleTetromino = this.cloneTetromino();
+    const possibleTetromino = this.cloneTetromino(this.tetromino);
     possibleTetromino.shape.x -= minoWidth;
 
     if (this.canMove(possibleTetromino.shape)) {
@@ -359,7 +360,7 @@ class Game extends Phaser.Scene {
   }
 
   shiftRight() {
-    const possibleTetromino = this.cloneTetromino();
+    const possibleTetromino = this.cloneTetromino(this.tetromino);
     possibleTetromino.shape.x += minoWidth;
 
     if (this.canMove(possibleTetromino.shape)) {
@@ -369,19 +370,40 @@ class Game extends Phaser.Scene {
     possibleTetromino.shape.removeAll();
   }
 
-  rotate() {
+  rotateRight() {
     if (this.isRotating) {
       return;
     }
 
     const rotationOffset = 1;
-    const rotatedTetromino = this.cloneTetromino(rotationOffset);
+    const rotatedTetromino = this.cloneTetromino(
+      this.tetromino,
+      rotationOffset
+    );
 
-    this.tetromino.shape.removeAll();
-    this.tetromino = rotatedTetromino;
+    const wallkickData = this.cache.json.get("wallkick");
+    const tetrominoWallkickData = wallkickData[this.tetromino.name];
+    const wallkickKey =
+      this.tetromino.rotation + ":" + rotatedTetromino.rotation;
+    const wallkickOffsets = tetrominoWallkickData[wallkickKey];
+    for (const offset of wallkickOffsets) {
+      const shiftedTetromino = this.cloneTetromino(rotatedTetromino, 0);
+      shiftedTetromino.shape.x += offset.x * minoWidth;
+      shiftedTetromino.shape.y += offset.y * minoHeight;
+      const canMove = this.canMove(shiftedTetromino.shape);
+      if (canMove) {
+        this.tetromino.shape.removeAll();
+        this.tetromino = shiftedTetromino;
+        this.tetromino.shape.x = shiftedTetromino.shape.x;
+        this.tetromino.shape.y = shiftedTetromino.shape.y;
+        break;
+      } else {
+        shiftedTetromino.shape.removeAll();
+      }
+    }
 
+    rotatedTetromino.shape.removeAll();
     this.updateLockCountersForMove();
-
     this.isRotating = true;
   }
 
