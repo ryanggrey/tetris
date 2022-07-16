@@ -100,7 +100,7 @@ class Game extends Phaser.Scene {
     this.tetromino = {
       name: tetrominoName,
       rotation: rotationIndex,
-      container: randomTetromino,
+      shape: randomTetromino,
     };
   }
 
@@ -208,7 +208,7 @@ class Game extends Phaser.Scene {
       this.yDelta = 0;
 
       // if above the board, game over
-      if (this.tetromino.container.getBounds().top < this.board.y) {
+      if (this.tetromino.shape.getBounds().top < this.board.y) {
         this.endGame();
         return;
       }
@@ -220,7 +220,7 @@ class Game extends Phaser.Scene {
       if (isLocked) {
         this.lockDelayCounter = 0;
         this.lockMoveCounter = 0;
-        this.staticTetrominoes.add(this.tetromino.container);
+        this.staticTetrominoes.add(this.tetromino.shape);
         this.spawnTetromino();
       }
     }
@@ -234,7 +234,7 @@ class Game extends Phaser.Scene {
       const yDelta = quotient * minoHeight;
       const remainder = this.yDelta % minoHeight;
 
-      this.tetromino.container.y += yDelta;
+      this.tetromino.shape.y += yDelta;
       this.yDelta = remainder;
     }
   }
@@ -243,7 +243,7 @@ class Game extends Phaser.Scene {
     // stop tetromino if it hits the bottom or another tetromino
 
     var isAtBottom = false;
-    this.tetromino.container.list.forEach((mino) => {
+    this.tetromino.shape.list.forEach((mino) => {
       const minoBottom = mino.getBounds().bottom;
       const boardBottom = this.board.y + boardRows * minoHeight;
       isAtBottom ||= mino.canCollide && minoBottom >= boardBottom;
@@ -259,58 +259,114 @@ class Game extends Phaser.Scene {
     }
   }
 
+  isOverlappingStaticTetromino(tetromino) {
+    var isOverlapping = false;
+    for (const mino of tetromino.list) {
+      if (!mino.canCollide) {
+        continue;
+      }
+      for (const staticTetromino of this.staticTetrominoes.list) {
+        for (const staticMino of staticTetromino.list) {
+          if (!staticMino.canCollide) {
+            continue;
+          }
+
+          isOverlapping = Phaser.Geom.Rectangle.Overlaps(
+            mino.getBounds(),
+            staticMino.getBounds()
+          );
+          if (isOverlapping) {
+            return true;
+          }
+        }
+      }
+    }
+    return isOverlapping;
+  }
+
+  isOutsideBoard(tetromino) {
+    var isOutsideBoard = false;
+    for (const mino of tetromino.list) {
+      if (!mino.canCollide) {
+        continue;
+      }
+      const isOverlap = Phaser.Geom.Rectangle.Overlaps(
+        this.board.getBounds(),
+        mino.getBounds()
+      );
+      isOutsideBoard = !isOverlap;
+      if (isOutsideBoard) {
+        return true;
+      }
+    }
+    return isOutsideBoard;
+  }
+
+  canMove(tetromino) {
+    return (
+      !this.isOverlappingStaticTetromino(tetromino) &&
+      !this.isOutsideBoard(tetromino)
+    );
+  }
+
+  cloneTetromino(rotationOffset = 0) {
+    const tetrominoes = this.cache.json.get("tetrominoes");
+    const tetrominoColors = this.cache.json.get("tetrominoColors");
+
+    const tetrominoName = this.tetromino.name;
+    const rotations = tetrominoes[tetrominoName];
+
+    var nextRotationIndex = this.tetromino.rotation + rotationOffset;
+    if (this.tetromino.rotation + rotationOffset >= rotations.length) {
+      nextRotationIndex = 0;
+    }
+    if (this.tetromino.rotation + rotationOffset < 0) {
+      nextRotationIndex = rotations.length - 1;
+    }
+    const nextRotation = rotations[nextRotationIndex];
+
+    // spawn in the same position as the current tetromino
+    const x = this.tetromino.shape.getBounds().left;
+    const y = this.tetromino.shape.getBounds().top;
+
+    const tetrominoColor = tetrominoColors[tetrominoName];
+
+    const possibleTetromino = this.createTetromino(
+      nextRotation,
+      { x, y },
+      tetrominoColor,
+      colors.hexBlack
+    );
+
+    const tetromino = {
+      name: tetrominoName,
+      rotation: nextRotationIndex,
+      shape: possibleTetromino,
+    };
+
+    return tetromino;
+  }
+
   shiftLeft() {
-    const boardLeft = this.board.getBounds().left;
-    var isAgainstStaticTetromino = false;
-    var isAgainstWall = false;
-    this.tetromino.container.list.forEach((mino) => {
-      const minoLeft = mino.getBounds().left;
+    const possibleTetromino = this.cloneTetromino();
+    possibleTetromino.shape.x -= minoWidth;
 
-      isAgainstWall ||= minoLeft === boardLeft && mino.canCollide;
-      this.staticTetrominoes.list.forEach((staticTetromino) => {
-        staticTetromino.list.forEach((staticMino) => {
-          const staticMinoRight = staticMino.getBounds().right;
-          const isAgainstStaticMino = minoLeft === staticMinoRight;
-          const isSameRow = mino.getBounds().top === staticMino.getBounds().top;
-          const canCollide = staticMino.canCollide && mino.canCollide;
-          isAgainstStaticTetromino ||=
-            isAgainstStaticMino && isSameRow && canCollide;
-        });
-      });
-    });
-    const canShift = !isAgainstWall && !isAgainstStaticTetromino;
-
-    if (canShift) {
-      this.tetromino.container.x -= minoWidth;
+    if (this.canMove(possibleTetromino.shape)) {
+      this.tetromino.shape.x -= minoWidth;
       this.updateLockCountersForMove();
     }
+    possibleTetromino.shape.removeAll();
   }
 
   shiftRight() {
-    const boardRight = this.board.getBounds().right;
-    var isAgainstStaticTetromino = false;
-    var isAgainstWall = false;
-    this.tetromino.container.list.forEach((mino) => {
-      const minoRight = mino.getBounds().right;
+    const possibleTetromino = this.cloneTetromino();
+    possibleTetromino.shape.x += minoWidth;
 
-      isAgainstWall ||= minoRight === boardRight && mino.canCollide;
-      this.staticTetrominoes.list.forEach((staticTetromino) => {
-        staticTetromino.list.forEach((staticMino) => {
-          const staticMinoLeft = staticMino.getBounds().left;
-          const isAgainstStaticMino = minoRight === staticMinoLeft;
-          const isSameRow = mino.getBounds().top === staticMino.getBounds().top;
-          const canCollide = staticMino.canCollide && mino.canCollide;
-          isAgainstStaticTetromino ||=
-            isAgainstStaticMino && isSameRow && canCollide;
-        });
-      });
-    });
-    const canShift = !isAgainstWall && !isAgainstStaticTetromino;
-
-    if (canShift) {
-      this.tetromino.container.x += minoWidth;
+    if (this.canMove(possibleTetromino.shape)) {
+      this.tetromino.shape.x += minoWidth;
       this.updateLockCountersForMove();
     }
+    possibleTetromino.shape.removeAll();
   }
 
   rotate() {
@@ -318,36 +374,11 @@ class Game extends Phaser.Scene {
       return;
     }
 
-    const tetrominoes = this.cache.json.get("tetrominoes");
-    const tetrominoColors = this.cache.json.get("tetrominoColors");
+    const rotationOffset = 1;
+    const rotatedTetromino = this.cloneTetromino(rotationOffset);
 
-    const tetrominoName = this.tetromino.name;
-    const rotations = tetrominoes[tetrominoName];
-    const nextRotationIndex =
-      this.tetromino.rotation + 1 > 3 ? 0 : this.tetromino.rotation + 1;
-    const nextRotation = rotations[nextRotationIndex];
-
-    // spawn in the same position as the current tetromino
-    const x = this.tetromino.container.getBounds().x;
-    const y = this.tetromino.container.getBounds().y;
-
-    const tetrominoColor = tetrominoColors[tetrominoName];
-
-    this.tetromino.container.removeAll(true);
-    this.tetromino.container.remove();
-
-    const rotatedTetromino = this.createTetromino(
-      nextRotation,
-      { x, y },
-      tetrominoColor,
-      colors.hexBlack
-    );
-
-    this.tetromino = {
-      name: tetrominoName,
-      rotation: nextRotationIndex,
-      container: rotatedTetromino,
-    };
+    this.tetromino.shape.removeAll();
+    this.tetromino = rotatedTetromino;
 
     this.updateLockCountersForMove();
 
@@ -358,7 +389,7 @@ class Game extends Phaser.Scene {
     var isOnAnotherTetromino = false;
     this.staticTetrominoes.list.forEach((staticTetromino) => {
       staticTetromino.list.forEach((staticMino) => {
-        this.tetromino.container.list.forEach((mino) => {
+        this.tetromino.shape.list.forEach((mino) => {
           const staticLeft = staticMino.getBounds().left;
           const activeLeft = mino.getBounds().left;
           const staticTop = staticMino.getBounds().top;
