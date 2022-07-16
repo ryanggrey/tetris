@@ -58,6 +58,9 @@ class Game extends Phaser.Scene {
       Phaser.Input.Keyboard.KeyCodes.LEFT
     );
     this.keyUp = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP);
+    this.keyDown = this.input.keyboard.addKey(
+      Phaser.Input.Keyboard.KeyCodes.DOWN
+    );
   }
 
   createBoard() {
@@ -228,7 +231,10 @@ class Game extends Phaser.Scene {
 
     // apply gravity, where 1G = 1 mino per frame
     const gravityJson = this.cache.json.get("gravity");
-    const gravity = gravityJson[this.level];
+    var gravity = gravityJson[this.level];
+    if (this.keyDown.isDown) {
+      gravity = gravityJson["softdrop"];
+    }
     this.yDelta += gravity * minoHeight;
     if (this.yDelta >= minoHeight) {
       const quotient = Math.floor(this.yDelta / minoHeight);
