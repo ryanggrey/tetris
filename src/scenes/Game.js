@@ -362,7 +362,7 @@ class Game extends Phaser.Scene {
       this.tetromino.shape.x -= minoWidth;
       this.updateLockCountersForMove();
     }
-    possibleTetromino.shape.removeAll();
+    possibleTetromino.shape.destroy();
   }
 
   shiftRight() {
@@ -373,7 +373,7 @@ class Game extends Phaser.Scene {
       this.tetromino.shape.x += minoWidth;
       this.updateLockCountersForMove();
     }
-    possibleTetromino.shape.removeAll();
+    possibleTetromino.shape.destroy();
   }
 
   rotateRight() {
@@ -398,17 +398,17 @@ class Game extends Phaser.Scene {
       shiftedTetromino.shape.y += offset.y * minoHeight;
       const canMove = this.canMove(shiftedTetromino.shape);
       if (canMove) {
-        this.tetromino.shape.removeAll();
+        this.tetromino.shape.destroy();
         this.tetromino = shiftedTetromino;
         this.tetromino.shape.x = shiftedTetromino.shape.x;
         this.tetromino.shape.y = shiftedTetromino.shape.y;
         break;
       } else {
-        shiftedTetromino.shape.removeAll();
+        shiftedTetromino.shape.destroy();
       }
     }
 
-    rotatedTetromino.shape.removeAll();
+    rotatedTetromino.shape.destroy();
     this.updateLockCountersForMove();
     this.isRotating = true;
   }
