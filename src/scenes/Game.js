@@ -21,8 +21,16 @@ class Game extends Phaser.Scene {
     this.load.json("wallkick", "assets/wallkick.json");
   }
 
+  setupLockedRows() {
+    this.lockedRows = [];
+    for (let i = 0; i < boardRows; i++) {
+      const lockedRow = [];
+      this.lockedRows.push(lockedRow);
+    }
+  }
+
   reset() {
-    this.level = 1;
+    this.level = 5;
     this.yDelta = 0;
 
     this.isRotating = false;
@@ -37,7 +45,7 @@ class Game extends Phaser.Scene {
 
     this.lockDelayCounter = 0;
     this.lockMoveCounter = 0;
-    this.staticTetrominoes = this.add.container();
+    this.setupLockedRows();
   }
 
   create(data) {
@@ -144,12 +152,54 @@ class Game extends Phaser.Scene {
     this.gameOver = true;
   }
 
+  deleteCompletedRows() {
+    var yDelta = 0;
+    var indexDelta = 0;
+    for (var rowIndex = this.lockedRows.length - 1; rowIndex >= 0; rowIndex--) {
+      const lockedRow = this.lockedRows[rowIndex];
+      lockedRow.forEach((lockedMino) => {
+        lockedMino.y += yDelta;
+      });
+      if (indexDelta > 0) {
+        this.lockedRows[rowIndex + indexDelta] = this.lockedRows[rowIndex];
+        this.lockedRows[rowIndex] = [];
+      }
+
+      const isCompleteRow = lockedRow.length === boardColumns;
+      if (isCompleteRow) {
+        yDelta += minoHeight;
+        indexDelta++;
+        lockedRow.forEach((lockedMino) => {
+          lockedMino.destroy();
+        });
+      }
+    }
+  }
+
+  lockTetromino() {
+    for (const mino of this.tetromino.shape.list) {
+      if (!mino.canCollide) {
+        continue;
+      }
+      const lockedMinoRowIndex =
+        (mino.getBounds().top - this.board.getBounds().top) / minoHeight;
+      const lockedMinoColIndex =
+        (mino.getBounds().left - this.board.getBounds().left) / minoWidth;
+
+      const lockedRow = this.lockedRows[lockedMinoRowIndex];
+      lockedRow.push(mino);
+    }
+    this.tetromino = null;
+  }
+
   update(time, delta) {
     if (this.gameOver) {
       return;
     }
 
     // assuming 60fps
+
+    this.deleteCompletedRows();
 
     const { das, arr, lockDelay, lockMoveLimit, rotationDelay } =
       this.cache.json.get("speed");
@@ -224,7 +274,7 @@ class Game extends Phaser.Scene {
       if (isLocked) {
         this.lockDelayCounter = 0;
         this.lockMoveCounter = 0;
-        this.staticTetrominoes.add(this.tetromino.shape);
+        this.lockTetromino();
         this.spawnTetromino();
       }
     }
@@ -256,7 +306,7 @@ class Game extends Phaser.Scene {
       isAtBottom ||= mino.canCollide && minoBottom >= boardBottom;
     });
 
-    return isAtBottom || this.isOnAStaticTetromino();
+    return isAtBottom || this.isOnALockedTetromino();
   }
 
   updateLockCountersForMove() {
@@ -266,21 +316,21 @@ class Game extends Phaser.Scene {
     }
   }
 
-  isOverlappingStaticTetromino(tetromino) {
+  isOverlappingLockedTetromino(tetromino) {
     var isOverlapping = false;
     for (const mino of tetromino.list) {
       if (!mino.canCollide) {
         continue;
       }
-      for (const staticTetromino of this.staticTetrominoes.list) {
-        for (const staticMino of staticTetromino.list) {
-          if (!staticMino.canCollide) {
+      for (const lockedRow of this.lockedRows) {
+        for (const lockedMino of lockedRow) {
+          if (!lockedMino.canCollide) {
             continue;
           }
 
           isOverlapping = Phaser.Geom.Rectangle.Overlaps(
             mino.getBounds(),
-            staticMino.getBounds()
+            lockedMino.getBounds()
           );
           if (isOverlapping) {
             return true;
@@ -311,7 +361,7 @@ class Game extends Phaser.Scene {
 
   canMove(tetromino) {
     return (
-      !this.isOverlappingStaticTetromino(tetromino) &&
+      !this.isOverlappingLockedTetromino(tetromino) &&
       !this.isOutsideBoard(tetromino)
     );
   }
@@ -413,23 +463,23 @@ class Game extends Phaser.Scene {
     this.isRotating = true;
   }
 
-  isOnAStaticTetromino() {
+  isOnALockedTetromino() {
     var isOnAnotherTetromino = false;
-    this.staticTetrominoes.list.forEach((staticTetromino) => {
-      staticTetromino.list.forEach((staticMino) => {
-        this.tetromino.shape.list.forEach((mino) => {
-          const staticLeft = staticMino.getBounds().left;
+    for (const lockedRow of this.lockedRows) {
+      for (const lockedMino of lockedRow) {
+        for (const mino of this.tetromino.shape.list) {
+          const lockedLeft = lockedMino.getBounds().left;
           const activeLeft = mino.getBounds().left;
-          const staticTop = staticMino.getBounds().top;
+          const lockedTop = lockedMino.getBounds().top;
           const activeBottom = mino.getBounds().bottom;
 
-          const isSameColumn = staticLeft === activeLeft;
-          const isOnTop = staticTop === activeBottom;
-          const canCollide = staticMino.canCollide && mino.canCollide;
+          const isSameColumn = lockedLeft === activeLeft;
+          const isOnTop = lockedTop === activeBottom;
+          const canCollide = lockedMino.canCollide && mino.canCollide;
           isOnAnotherTetromino ||= isSameColumn && isOnTop && canCollide;
-        });
-      });
-    });
+        }
+      }
+    }
     return isOnAnotherTetromino;
   }
 }
