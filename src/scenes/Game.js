@@ -5,6 +5,7 @@ const minoHeight = 25;
 const minoWidth = 25;
 const boardColumns = 10;
 const boardRows = 20;
+const lineClearAnimationDuration = 200;
 
 class Game extends Phaser.Scene {
   constructor() {
@@ -151,14 +152,31 @@ class Game extends Phaser.Scene {
   }
 
   deleteCompletedRows() {
+    const ease = Phaser.Math.Easing.Sine.InOut;
+    const animationDelay = (mino) => {
+      const minoColIndex = (mino) =>
+        (mino.getBounds().left - this.board.getBounds().left) / minoWidth;
+
+      return (lineClearAnimationDuration / boardColumns) * minoColIndex(mino);
+    };
+
     var yDelta = 0;
     var indexDelta = 0;
     for (var rowIndex = this.lockedRows.length - 1; rowIndex >= 0; rowIndex--) {
       const lockedRow = this.lockedRows[rowIndex];
-      lockedRow.forEach((lockedMino) => {
-        lockedMino.y += yDelta;
-      });
       if (indexDelta > 0) {
+        for (const lockedMino of lockedRow) {
+          const scopedYDelta = yDelta;
+          const newY = lockedMino.y + scopedYDelta;
+          this.tweens.add({
+            targets: lockedMino,
+            y: newY,
+            delay: animationDelay(lockedMino),
+            duration: lineClearAnimationDuration,
+            ease,
+          });
+        }
+
         this.lockedRows[rowIndex + indexDelta] = this.lockedRows[rowIndex];
         this.lockedRows[rowIndex] = [];
       }
@@ -167,9 +185,24 @@ class Game extends Phaser.Scene {
       if (isCompleteRow) {
         yDelta += minoHeight;
         indexDelta++;
-        lockedRow.forEach((lockedMino) => {
-          lockedMino.destroy();
-        });
+        for (const lockedMino of lockedRow) {
+          // tween scales from origin, which is top-left
+          // so set origin to centre and shift position to match
+          lockedMino.setOrigin(0.5);
+          lockedMino.x = lockedMino.x + lockedMino.width / 2;
+          lockedMino.y = lockedMino.y + lockedMino.height / 2;
+
+          this.tweens.add({
+            targets: lockedMino,
+            scale: 0,
+            duration: lineClearAnimationDuration,
+            delay: animationDelay(lockedMino),
+            ease,
+            onComplete: () => {
+              lockedMino.destroy();
+            },
+          });
+        }
       }
     }
   }
@@ -181,8 +214,6 @@ class Game extends Phaser.Scene {
       }
       const lockedMinoRowIndex =
         (mino.getBounds().top - this.board.getBounds().top) / minoHeight;
-      const lockedMinoColIndex =
-        (mino.getBounds().left - this.board.getBounds().left) / minoWidth;
 
       const lockedRow = this.lockedRows[lockedMinoRowIndex];
       lockedRow.push(mino);
