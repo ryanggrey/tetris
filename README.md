@@ -46,7 +46,7 @@ Wall kick data and implementation taken from https://tetris.wiki/Super_Rotation_
 - [x] Wall kicks
 - [x] Soft drop
 - [x] Line deletion
-- [ ] Line deletion - animation
+- [x] Line deletion - animation
 - [ ] Ghost tetromino
 - [ ] Hard drop
 - [ ] Hard drop - animation
