@@ -41,7 +41,7 @@ Wall kick data and implementation taken from https://tetris.wiki/Super_Rotation_
 - [x] Right wall collision
 - [x] Right/left static tetromino collision
 - [x] Right rotation
-- [ ] Disallow auto rotate
+- [x] Disallow auto rotate
 - [ ] Left rotation
 - [x] Wall kicks
 - [x] Soft drop

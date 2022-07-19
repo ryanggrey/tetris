@@ -2,6 +2,5 @@
   "das": 10,
   "arr": 3,
   "lockDelay": 30,
-  "lockMoveLimit": 15,
-  "rotationDelay": 10
+  "lockMoveLimit": 15
 }

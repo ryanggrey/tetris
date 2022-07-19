@@ -34,7 +34,6 @@ class Game extends Phaser.Scene {
     this.yDelta = 0;
 
     this.isRotating = false;
-    this.rotationDelayCounter = 0;
 
     // Delayed Auto Shift (DAS) counter
     this.rightDasCounter = 0;
@@ -58,7 +57,6 @@ class Game extends Phaser.Scene {
   }
 
   createControls() {
-    this.keyUp = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP);
     this.keyRight = this.input.keyboard.addKey(
       Phaser.Input.Keyboard.KeyCodes.RIGHT
     );
@@ -201,17 +199,7 @@ class Game extends Phaser.Scene {
 
     this.deleteCompletedRows();
 
-    const { das, arr, lockDelay, lockMoveLimit, rotationDelay } =
-      this.cache.json.get("speed");
-
-    if (this.isRotating) {
-      this.rotationDelayCounter++;
-    }
-
-    if (this.rotationDelayCounter == rotationDelay) {
-      this.rotationDelayCounter = 0;
-      this.isRotating = false;
-    }
+    const { das, arr, lockDelay, lockMoveLimit } = this.cache.json.get("speed");
 
     if (this.keyRight.isDown) {
       if (this.rightDasCounter === 0) {
@@ -255,6 +243,11 @@ class Game extends Phaser.Scene {
 
     if (this.keyUp.isDown) {
       this.rotateRight();
+    }
+
+    if (this.keyUp.isUp) {
+      // rotating requires key lifts
+      this.isRotating = false;
     }
 
     if (this.isLocking()) {
