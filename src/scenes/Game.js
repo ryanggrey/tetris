@@ -151,7 +151,7 @@ class Game extends Phaser.Scene {
     this.gameOver = true;
   }
 
-  deleteCompletedRows() {
+  clearCompletedRows() {
     const ease = Phaser.Math.Easing.Sine.InOut;
     const animationDelay = (mino) => {
       const minoColIndex = (mino) =>
@@ -228,7 +228,7 @@ class Game extends Phaser.Scene {
 
     // assuming 60fps
 
-    this.deleteCompletedRows();
+    this.clearCompletedRows();
 
     const { das, arr, lockDelay, lockMoveLimit } = this.cache.json.get("speed");
 
