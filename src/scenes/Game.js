@@ -1,8 +1,6 @@
 import Phaser from "phaser";
 import { colors } from "../colors";
 
-const minoHeight = 25;
-const minoWidth = 25;
 const boardColumns = 10;
 const boardRows = 20;
 const lineClearAnimationDuration = 200;
@@ -20,6 +18,7 @@ class Game extends Phaser.Scene {
     this.load.json("tetrominoColors", "assets/tetrominoColors.json");
     this.load.json("tetrominoes", "assets/tetrominoes.json");
     this.load.json("wallkick", "assets/wallkick.json");
+    this.load.json("score", "assets/score.json");
   }
 
   setupLockedRows() {
@@ -32,29 +31,68 @@ class Game extends Phaser.Scene {
 
   reset() {
     this.level = 5;
+    this.score = 0;
     this.yDelta = 0;
-
     this.isRotating = false;
 
     // Delayed Auto Shift (DAS) counter
     this.rightDasCounter = 0;
     this.leftDasCounter = 0;
+
     // Auto Repeat Rate (ARR) counter
     this.rightArrCounter = 0;
     this.leftArrCounter = 0;
 
     this.lockDelayCounter = 0;
     this.lockMoveCounter = 0;
+
     this.setupLockedRows();
   }
 
   create(data) {
     this.reset();
 
+    this.createDimensions();
     this.createControls();
     this.createBoard();
+    this.createScoreField();
     this.spawnTetromino();
     this.gameOver = false;
+  }
+
+  createDimensions() {
+    const sectionWidth = 250;
+    this.scoreSectionDimensions = {
+      x: 0,
+      width: sectionWidth,
+    };
+    this.boardSectionDimensions = {
+      x: 1 * sectionWidth,
+      width: sectionWidth,
+    };
+    this.nextSectionDimensions = {
+      x: 2 * sectionWidth,
+      width: sectionWidth,
+    };
+    this.minoWidth = this.boardSectionDimensions.width / boardColumns;
+    this.minoHeight = this.minoWidth;
+  }
+
+  createScoreField() {
+    const fieldPadding = this.minoWidth;
+    const color = colors.hexBlack;
+    const textStyle = {
+      color,
+    };
+    const baseSize = this.scale.baseSize;
+    const xLabel =
+      this.scoreSectionDimensions.x + this.scoreSectionDimensions.width / 2;
+    const yLabel = Math.floor(baseSize.height / 2 - this.minoHeight * 2);
+    this.scoreKey = this.add.text(xLabel, yLabel, "Score", textStyle);
+
+    const xValue = xLabel;
+    const yValue = this.scoreKey.getBounds().bottom + 10;
+    this.scoreValue = this.add.text(xValue, yValue, "0", textStyle);
   }
 
   createControls() {
@@ -71,18 +109,13 @@ class Game extends Phaser.Scene {
   }
 
   createBoard() {
-    const boardWidth = boardColumns * minoWidth;
-    const boardHeight = boardRows * minoHeight;
+    const boardWidth = this.boardSectionDimensions.width;
+    const boardHeight = boardRows * this.minoHeight;
     const baseSize = this.scale.baseSize;
-    const x = Math.floor(baseSize.width / 2 - boardWidth / 2);
+    const x = this.boardSectionDimensions.x;
     const y = Math.floor(baseSize.height / 2 - boardHeight / 2);
 
-    this.board = this.add.rectangle(
-      x,
-      y,
-      boardColumns * minoWidth,
-      boardRows * minoHeight
-    );
+    this.board = this.add.rectangle(x, y, boardWidth, boardHeight);
     this.board.setOrigin(0);
     this.board.setStrokeStyle(1, colors.hexBlack);
   }
@@ -100,8 +133,8 @@ class Game extends Phaser.Scene {
     const tetrominoColor = tetrominoColors[tetrominoName];
 
     // spawn in top -2 rows, at column index 3 (4th column)
-    const x = this.board.x + 3 * minoWidth;
-    const y = this.board.y + -2 * minoHeight;
+    const x = this.board.x + 3 * this.minoWidth;
+    const y = this.board.y + -2 * this.minoHeight;
     const randomTetromino = this.createTetromino(
       tetrominoJSON,
       { x, y },
@@ -119,14 +152,14 @@ class Game extends Phaser.Scene {
     const container = this.add.container();
     tetromino.forEach((row, yIndex) => {
       row.forEach((bit, xIndex) => {
-        const x = coord.x + xIndex * minoWidth;
-        const y = coord.y + yIndex * minoHeight;
+        const x = coord.x + xIndex * this.minoWidth;
+        const y = coord.y + yIndex * this.minoHeight;
 
         const mino = this.createMino(
           x,
           y,
-          minoWidth,
-          minoHeight,
+          this.minoWidth,
+          this.minoHeight,
           fillColor,
           strokeColor
         );
@@ -151,17 +184,29 @@ class Game extends Phaser.Scene {
     this.gameOver = true;
   }
 
+  incrementScore(numberOfLinesCleared) {
+    const scores = this.cache.json.get("score");
+    const perLevel = scores[`${numberOfLinesCleared}`];
+    if (!perLevel) {
+      return;
+    }
+    const earned = perLevel * this.level;
+    this.score += earned;
+    this.scoreValue.setText(this.score);
+  }
+
   clearCompletedRows() {
     const ease = Phaser.Math.Easing.Sine.InOut;
     const animationDelay = (mino) => {
       const minoColIndex = (mino) =>
-        (mino.getBounds().left - this.board.getBounds().left) / minoWidth;
+        (mino.getBounds().left - this.board.getBounds().left) / this.minoWidth;
 
       return (lineClearAnimationDuration / boardColumns) * minoColIndex(mino);
     };
 
     var yDelta = 0;
     var indexDelta = 0;
+    var rowsCleared = 0;
     for (var rowIndex = this.lockedRows.length - 1; rowIndex >= 0; rowIndex--) {
       const lockedRow = this.lockedRows[rowIndex];
       if (indexDelta > 0) {
@@ -183,7 +228,8 @@ class Game extends Phaser.Scene {
 
       const isCompleteRow = lockedRow.length === boardColumns;
       if (isCompleteRow) {
-        yDelta += minoHeight;
+        rowsCleared++;
+        yDelta += this.minoHeight;
         indexDelta++;
         for (const lockedMino of lockedRow) {
           // tween scales from origin, which is top-left
@@ -205,6 +251,7 @@ class Game extends Phaser.Scene {
         }
       }
     }
+    this.incrementScore(rowsCleared);
   }
 
   lockTetromino() {
@@ -213,7 +260,7 @@ class Game extends Phaser.Scene {
         continue;
       }
       const lockedMinoRowIndex =
-        (mino.getBounds().top - this.board.getBounds().top) / minoHeight;
+        (mino.getBounds().top - this.board.getBounds().top) / this.minoHeight;
 
       const lockedRow = this.lockedRows[lockedMinoRowIndex];
       lockedRow.push(mino);
@@ -309,11 +356,11 @@ class Game extends Phaser.Scene {
     if (this.keyDown.isDown) {
       gravity = gravityJson["softdrop"];
     }
-    this.yDelta += gravity * minoHeight;
-    if (this.yDelta >= minoHeight) {
-      const quotient = Math.floor(this.yDelta / minoHeight);
-      const yDelta = quotient * minoHeight;
-      const remainder = this.yDelta % minoHeight;
+    this.yDelta += gravity * this.minoHeight;
+    if (this.yDelta >= this.minoHeight) {
+      const quotient = Math.floor(this.yDelta / this.minoHeight);
+      const yDelta = quotient * this.minoHeight;
+      const remainder = this.yDelta % this.minoHeight;
 
       this.tetromino.shape.y += yDelta;
       this.yDelta = remainder;
@@ -326,7 +373,7 @@ class Game extends Phaser.Scene {
     var isAtBottom = false;
     this.tetromino.shape.list.forEach((mino) => {
       const minoBottom = mino.getBounds().bottom;
-      const boardBottom = this.board.y + boardRows * minoHeight;
+      const boardBottom = this.board.y + boardRows * this.minoHeight;
       isAtBottom ||= mino.canCollide && minoBottom >= boardBottom;
     });
 
@@ -430,10 +477,10 @@ class Game extends Phaser.Scene {
 
   shiftLeft() {
     const possibleTetromino = this.cloneTetromino(this.tetromino);
-    possibleTetromino.shape.x -= minoWidth;
+    possibleTetromino.shape.x -= this.minoWidth;
 
     if (this.canMove(possibleTetromino.shape)) {
-      this.tetromino.shape.x -= minoWidth;
+      this.tetromino.shape.x -= this.minoWidth;
       this.updateLockCountersForMove();
     }
     possibleTetromino.shape.destroy();
@@ -441,10 +488,10 @@ class Game extends Phaser.Scene {
 
   shiftRight() {
     const possibleTetromino = this.cloneTetromino(this.tetromino);
-    possibleTetromino.shape.x += minoWidth;
+    possibleTetromino.shape.x += this.minoWidth;
 
     if (this.canMove(possibleTetromino.shape)) {
-      this.tetromino.shape.x += minoWidth;
+      this.tetromino.shape.x += this.minoWidth;
       this.updateLockCountersForMove();
     }
     possibleTetromino.shape.destroy();
@@ -468,8 +515,8 @@ class Game extends Phaser.Scene {
     const wallkickOffsets = tetrominoWallkickData[wallkickKey];
     for (const offset of wallkickOffsets) {
       const shiftedTetromino = this.cloneTetromino(rotatedTetromino, 0);
-      shiftedTetromino.shape.x += offset.x * minoWidth;
-      shiftedTetromino.shape.y += offset.y * minoHeight;
+      shiftedTetromino.shape.x += offset.x * this.minoWidth;
+      shiftedTetromino.shape.y += offset.y * this.minoHeight;
       const canMove = this.canMove(shiftedTetromino.shape);
       if (canMove) {
         this.tetromino.shape.destroy();

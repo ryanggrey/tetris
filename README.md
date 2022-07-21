@@ -47,6 +47,8 @@ Wall kick data and implementation taken from https://tetris.wiki/Super_Rotation_
 - [x] Soft drop
 - [x] Line deletion
 - [x] Line deletion - animation
+- [ ] Board gridlines
+- [ ] Gridlines between tetrominoes
 - [ ] Ghost tetromino
 - [ ] Hard drop
 - [ ] Hard drop - animation
@@ -54,8 +56,10 @@ Wall kick data and implementation taken from https://tetris.wiki/Super_Rotation_
 - [ ] Music
 - [ ] Game over screen
 - [ ] Game over screen - retry
-- [ ] Score
-- [ ] Score - level incrementing
+- [x] Score - simple (line clears)
+- [ ] Score - advanced (t-spins and others)
+- [ ] Lines tracking
+- [ ] Lines tracking - level incrementing
 - [ ] High score tracking
 - [ ] Next 5 tetrominoes
 - [ ] Hold tetromino
