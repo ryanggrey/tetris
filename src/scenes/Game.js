@@ -5,6 +5,7 @@ const boardColumns = 10;
 const boardRows = 20;
 const lineClearAnimationDuration = 200;
 const levelUpThreshold = 10;
+const maxLevel = 20;
 
 class Game extends Phaser.Scene {
   constructor() {
@@ -311,7 +312,10 @@ class Game extends Phaser.Scene {
   }
 
   incrementLevel() {
-    const newLevel = this.level + 1;
+    var newLevel = this.level + 1;
+    if (newLevel > maxLevel) {
+      newLevel = maxLevel;
+    }
     this.setLevel(newLevel);
   }
 
@@ -413,7 +417,10 @@ class Game extends Phaser.Scene {
 
     // apply gravity, where 1G = 1 mino per frame
     const gravityJson = this.cache.json.get("gravity");
-    var gravity = gravityJson[this.level];
+    const maxGravityLevel = 15;
+    const gravityKey =
+      this.level > maxGravityLevel ? maxGravityLevel : this.level;
+    var gravity = gravityJson[gravityKey];
     if (this.keyDown.isDown) {
       gravity = gravityJson["softdrop"];
     }
