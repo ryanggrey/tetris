@@ -4,6 +4,7 @@ import { colors } from "../colors";
 const boardColumns = 10;
 const boardRows = 20;
 const lineClearAnimationDuration = 200;
+const levelUpThreshold = 10;
 
 class Game extends Phaser.Scene {
   constructor() {
@@ -29,9 +30,31 @@ class Game extends Phaser.Scene {
     }
   }
 
+  setLevel(level) {
+    this.level = level;
+    if (this.levelValue) {
+      this.levelValue.setText(this.level);
+    }
+  }
+
+  setScore(score) {
+    this.score = score;
+    if (this.scoreValue) {
+      this.scoreValue.setText(this.score);
+    }
+  }
+
+  setTotalRowsCleared(totalRowsCleared) {
+    this.totalRowsCleared = totalRowsCleared;
+    if (this.linesValue) {
+      this.linesValue.setText(this.totalRowsCleared);
+    }
+  }
+
   reset() {
-    this.level = 5;
-    this.score = 0;
+    this.setLevel(1);
+    this.setScore(0);
+    this.setTotalRowsCleared(0);
     this.yDelta = 0;
     this.isRotating = false;
 
@@ -55,7 +78,7 @@ class Game extends Phaser.Scene {
     this.createDimensions();
     this.createControls();
     this.createBoard();
-    this.createScoreField();
+    this.createScoreSection();
     this.spawnTetromino();
     this.gameOver = false;
   }
@@ -78,21 +101,46 @@ class Game extends Phaser.Scene {
     this.minoHeight = this.minoWidth;
   }
 
-  createScoreField() {
-    const fieldPadding = this.minoWidth;
+  createScoreSection() {
+    const groupPadding = 10;
+    const interPadding = 5;
+    const fieldHeight = this.minoHeight;
+    const fieldWidth = this.minoWidth * 3;
+    const boardBottom = this.board.getBounds().bottom;
+    const linesValueY = boardBottom - groupPadding - fieldHeight;
+    const linesKeyY = linesValueY - interPadding - fieldHeight;
+    const levelValueY = linesKeyY - groupPadding - fieldHeight;
+    const levelKeyY = levelValueY - interPadding - fieldHeight;
+    const scoreValueY = levelKeyY - groupPadding - fieldHeight;
+    const scoreKeyY = scoreValueY - interPadding - fieldHeight;
+
     const color = colors.hexBlack;
     const textStyle = {
       color,
+      width: fieldWidth,
     };
-    const baseSize = this.scale.baseSize;
-    const xLabel =
-      this.scoreSectionDimensions.x + this.scoreSectionDimensions.width / 2;
-    const yLabel = Math.floor(baseSize.height / 2 - this.minoHeight * 2);
-    this.scoreKey = this.add.text(xLabel, yLabel, "Score", textStyle);
-
-    const xValue = xLabel;
-    const yValue = this.scoreKey.getBounds().bottom + 10;
-    this.scoreValue = this.add.text(xValue, yValue, "0", textStyle);
+    const x = this.boardSectionDimensions.x - groupPadding - fieldWidth;
+    this.scoreKey = this.add.text(x, scoreKeyY, "Score", textStyle);
+    this.scoreValue = this.add.text(
+      x,
+      scoreValueY,
+      `${this.score || 0}`,
+      textStyle
+    );
+    this.levelKey = this.add.text(x, levelKeyY, "Level", textStyle);
+    this.levelValue = this.add.text(
+      x,
+      levelValueY,
+      `${this.level || 0}`,
+      textStyle
+    );
+    this.linesKey = this.add.text(x, linesKeyY, "Lines", textStyle);
+    this.linesValue = this.add.text(
+      x,
+      linesValueY,
+      `${this.totalRowsCleared || 0}`,
+      textStyle
+    );
   }
 
   createControls() {
@@ -180,7 +228,6 @@ class Game extends Phaser.Scene {
   }
 
   endGame() {
-    this.reset();
     this.gameOver = true;
   }
 
@@ -191,8 +238,8 @@ class Game extends Phaser.Scene {
       return;
     }
     const earned = perLevel * this.level;
-    this.score += earned;
-    this.scoreValue.setText(this.score);
+    const newScore = this.score + earned;
+    this.setScore(newScore);
   }
 
   clearCompletedRows() {
@@ -228,6 +275,7 @@ class Game extends Phaser.Scene {
 
       const isCompleteRow = lockedRow.length === boardColumns;
       if (isCompleteRow) {
+        this.incrementTotalRowsCleared();
         rowsCleared++;
         yDelta += this.minoHeight;
         indexDelta++;
@@ -252,6 +300,19 @@ class Game extends Phaser.Scene {
       }
     }
     this.incrementScore(rowsCleared);
+  }
+
+  incrementTotalRowsCleared() {
+    const newTotalRowsCleared = this.totalRowsCleared + 1;
+    this.setTotalRowsCleared(newTotalRowsCleared);
+    if (newTotalRowsCleared % levelUpThreshold === 0) {
+      this.incrementLevel();
+    }
+  }
+
+  incrementLevel() {
+    const newLevel = this.level + 1;
+    this.setLevel(newLevel);
   }
 
   lockTetromino() {
