@@ -232,7 +232,7 @@ class Game extends Phaser.Scene {
     this.gameOver = true;
   }
 
-  incrementScore(numberOfLinesCleared) {
+  incrementScoreFor(numberOfLinesCleared) {
     const scores = this.cache.json.get("score");
     const perLevel = scores[`${numberOfLinesCleared}`];
     if (!perLevel) {
@@ -276,7 +276,6 @@ class Game extends Phaser.Scene {
 
       const isCompleteRow = lockedRow.length === boardColumns;
       if (isCompleteRow) {
-        this.incrementTotalRowsCleared();
         rowsCleared++;
         yDelta += this.minoHeight;
         indexDelta++;
@@ -300,19 +299,28 @@ class Game extends Phaser.Scene {
         }
       }
     }
-    this.incrementScore(rowsCleared);
-  }
 
-  incrementTotalRowsCleared() {
-    const newTotalRowsCleared = this.totalRowsCleared + 1;
-    this.setTotalRowsCleared(newTotalRowsCleared);
-    if (newTotalRowsCleared % levelUpThreshold === 0) {
-      this.incrementLevel();
+    if (rowsCleared > 0) {
+      this.incrementScoreFor(rowsCleared);
+      this.incrementTotalRowsClearedBy(rowsCleared);
     }
   }
 
-  incrementLevel() {
-    var newLevel = this.level + 1;
+  incrementTotalRowsClearedBy(rowsCleared) {
+    const oldTotalRowsCleared = this.totalRowsCleared;
+    const newTotalRowsCleared = this.totalRowsCleared + rowsCleared;
+    if (newTotalRowsCleared === oldTotalRowsCleared) {
+      return;
+    }
+
+    this.setTotalRowsCleared(newTotalRowsCleared);
+    if (newTotalRowsCleared % levelUpThreshold === 0) {
+      this.incrementLevelBy(newTotalRowsCleared / levelUpThreshold);
+    }
+  }
+
+  incrementLevelBy(numberOfLevels) {
+    var newLevel = this.level + numberOfLevels;
     if (newLevel > maxLevel) {
       newLevel = maxLevel;
     }
