@@ -60,10 +60,12 @@ Wall kick data and implementation taken from https://tetris.wiki/Super_Rotation_
 - [ ] Score - advanced (t-spins and others)
 - [x] Lines tracking
 - [x] Lines tracking - level incrementing
+- [ ] Text change animations
 - [ ] High score tracking
 - [ ] Next 5 tetrominoes
 - [ ] Hold tetromino
 - [ ] Switch held tetromino
 - [ ] Don't assume 60fps
 - [ ] Mobile controls
+- [ ] Unit tests
 - [ ] Web hosting
