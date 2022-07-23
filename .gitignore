@@ -2,7 +2,7 @@
 Thumbs.db
 .DS_Store
 .idea
-.vscode
+#.vscode
 *.suo
 *.sublime-project
 *.sublime-workspace
