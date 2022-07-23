@@ -524,21 +524,26 @@ class Game extends Phaser.Scene {
   }
 
   isOutsideBoard(tetromino) {
-    var isOutsideBoard = false;
+    var isOverlap = false;
     for (const mino of tetromino.list) {
       if (!mino.canCollide) {
         continue;
       }
-      const isOverlap = Phaser.Geom.Rectangle.Overlaps(
-        this.board.getBounds(),
-        mino.getBounds()
-      );
-      isOutsideBoard = !isOverlap;
-      if (isOutsideBoard) {
+      const isOverlappingLeft =
+        mino.getBounds().left < this.board.getBounds().left;
+      const isOverlappingRight =
+        mino.getBounds().right > this.board.getBounds().right;
+      const isOverlappingBottom =
+        mino.getBounds().bottom > this.board.getBounds().bottom;
+      // ignore top
+
+      isOverlap ||=
+        isOverlappingRight || isOverlappingBottom || isOverlappingLeft;
+      if (isOverlap) {
         return true;
       }
     }
-    return isOutsideBoard;
+    return isOverlap;
   }
 
   canMove(tetromino) {
