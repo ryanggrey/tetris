@@ -58,8 +58,8 @@ Wall kick data and implementation taken from https://tetris.wiki/Super_Rotation_
 - [ ] Game over screen - retry
 - [x] Score - simple (line clears)
 - [ ] Score - advanced (t-spins and others)
-- [ ] Lines tracking
-- [ ] Lines tracking - level incrementing
+- [x] Lines tracking
+- [x] Lines tracking - level incrementing
 - [ ] High score tracking
 - [ ] Next 5 tetrominoes
 - [ ] Hold tetromino
