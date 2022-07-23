@@ -1,11 +1,10 @@
 import Phaser from "phaser";
 import { colors } from "../colors";
+import levelCalculator from "../levelCalculator";
 
 const boardColumns = 10;
 const boardRows = 20;
 const lineClearAnimationDuration = 200;
-const levelUpThreshold = 10;
-const maxLevel = 20;
 
 class Game extends Phaser.Scene {
   constructor() {
@@ -31,25 +30,64 @@ class Game extends Phaser.Scene {
     }
   }
 
+  pulse(gameObject) {
+    // pulse from centre
+    gameObject.setOrigin(0.5);
+    gameObject.x = gameObject.x + gameObject.width / 2;
+    gameObject.y = gameObject.y + gameObject.height / 2;
+
+    this.tweens.add({
+      targets: gameObject,
+      scale: 2,
+      duration: 100,
+      yoyo: true,
+      ease: Phaser.Math.Easing.Sine.InOut,
+      onComplete: () => {
+        // reset origin
+        gameObject.setOrigin(0);
+        gameObject.x = gameObject.x - gameObject.width / 2;
+        gameObject.y = gameObject.y - gameObject.height / 2;
+      },
+    });
+  }
+
   setLevel(level) {
-    this.level = level;
-    if (this.levelValue) {
-      this.levelValue.setText(this.level);
+    if (this.level === level) {
+      return;
     }
+    this.level = level;
+
+    if (!this.levelValue) {
+      return;
+    }
+    this.levelValue.setText(this.level);
+    this.pulse(this.levelValue);
   }
 
   setScore(score) {
-    this.score = score;
-    if (this.scoreValue) {
-      this.scoreValue.setText(this.score);
+    if (this.score === score) {
+      return;
     }
+    this.score = score;
+
+    if (!this.scoreValue) {
+      return;
+    }
+    this.scoreValue.setText(this.score);
+    this.pulse(this.scoreValue);
   }
 
   setTotalRowsCleared(totalRowsCleared) {
-    this.totalRowsCleared = totalRowsCleared;
-    if (this.linesValue) {
-      this.linesValue.setText(this.totalRowsCleared);
+    if (this.totalRowsCleared === totalRowsCleared) {
+      return;
     }
+    this.totalRowsCleared = totalRowsCleared;
+
+    if (!this.linesValue) {
+      return;
+    }
+    this.linesValue.setText(this.totalRowsCleared);
+    this.pulse(this.linesValue);
   }
 
   reset() {
@@ -119,6 +157,8 @@ class Game extends Phaser.Scene {
     const textStyle = {
       color,
       width: fieldWidth,
+      align: "center",
+      fixedWidth: fieldWidth,
     };
     const x = this.boardSectionDimensions.x - groupPadding - fieldWidth;
     this.scoreKey = this.add.text(x, scoreKeyY, "Score", textStyle);
@@ -314,16 +354,11 @@ class Game extends Phaser.Scene {
     }
 
     this.setTotalRowsCleared(newTotalRowsCleared);
-    if (newTotalRowsCleared % levelUpThreshold === 0) {
-      this.incrementLevelBy(newTotalRowsCleared / levelUpThreshold);
-    }
+    this.incrementLevelFor(newTotalRowsCleared);
   }
 
-  incrementLevelBy(numberOfLevels) {
-    var newLevel = this.level + numberOfLevels;
-    if (newLevel > maxLevel) {
-      newLevel = maxLevel;
-    }
+  incrementLevelFor(totalRowsCleared) {
+    const newLevel = levelCalculator(totalRowsCleared);
     this.setLevel(newLevel);
   }
 
