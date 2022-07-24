@@ -45,7 +45,7 @@ Wall kick data and implementation taken from https://tetris.wiki/Super_Rotation_
 - [ ] Left rotation
 - [x] Wall kicks
 - [x] Soft drop
-- [ ] Soft drop - score
+- [x] Soft drop - score
 - [x] Line deletion
 - [x] Line deletion - animation
 - [x] Allow movement in -1 and -2 rows

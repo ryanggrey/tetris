@@ -64,7 +64,7 @@ class Game extends Phaser.Scene {
     this.pulse(this.levelValue);
   }
 
-  setScore(score) {
+  setScore(score, isAnimated = true) {
     if (this.score === score) {
       return;
     }
@@ -74,7 +74,9 @@ class Game extends Phaser.Scene {
       return;
     }
     this.scoreValue.setText(this.score);
-    this.pulse(this.scoreValue);
+    if (isAnimated) {
+      this.pulse(this.scoreValue);
+    }
   }
 
   setTotalRowsCleared(totalRowsCleared) {
@@ -472,17 +474,25 @@ class Game extends Phaser.Scene {
     const gravityKey =
       this.level > maxGravityLevel ? maxGravityLevel : this.level;
     var gravity = gravityJson[gravityKey];
-    if (this.keyDown.isDown) {
+    const isSoftDrop = this.keyDown.isDown;
+    if (isSoftDrop) {
       gravity = gravityJson["softdrop"];
     }
     this.yDelta += gravity * this.minoHeight;
-    if (this.yDelta >= this.minoHeight) {
+    const shouldDropRow = this.yDelta >= this.minoHeight;
+    if (shouldDropRow) {
       const quotient = Math.floor(this.yDelta / this.minoHeight);
       const yDelta = quotient * this.minoHeight;
       const remainder = this.yDelta % this.minoHeight;
 
       this.tetromino.shape.y += yDelta;
       this.yDelta = remainder;
+
+      if (isSoftDrop) {
+        const { softdropPerRow } = this.cache.json.get("score");
+        const newScore = this.score + softdropPerRow;
+        this.setScore(newScore, false);
+      }
     }
   }
 
