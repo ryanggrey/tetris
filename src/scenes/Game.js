@@ -197,6 +197,9 @@ class Game extends Phaser.Scene {
     this.keyDown = this.input.keyboard.addKey(
       Phaser.Input.Keyboard.KeyCodes.DOWN
     );
+    this.keySpace = this.input.keyboard.addKey(
+      Phaser.Input.Keyboard.KeyCodes.SPACE
+    );
   }
 
   createBoard() {
@@ -241,6 +244,15 @@ class Game extends Phaser.Scene {
     this.updateGhostTetromino();
   }
 
+  shiftToBottom(tetromino) {
+    // shift tetromino down until it is colliding with something
+
+    while (this.canMove(tetromino)) {
+      tetromino.y += this.minoHeight;
+    }
+    tetromino.y -= this.minoHeight;
+  }
+
   updateGhostTetromino() {
     // spawn ghost tetromino at bottom of board
     if (this.ghostTetromino) {
@@ -250,11 +262,7 @@ class Game extends Phaser.Scene {
     this.ghostTetromino = this.cloneTetromino(this.tetromino);
     this.ghostTetromino.shape.setAlpha(0.5);
 
-    // shift ghost tetromino down until it is colliding with something
-    while (this.canMove(this.ghostTetromino.shape)) {
-      this.ghostTetromino.shape.y += this.minoHeight;
-    }
-    this.ghostTetromino.shape.y -= this.minoHeight;
+    this.shiftToBottom(this.ghostTetromino.shape);
   }
 
   createTetromino(tetromino, coord, fillColor, strokeColor, alpha = 1) {
@@ -405,6 +413,9 @@ class Game extends Phaser.Scene {
   }
 
   lockTetromino() {
+    this.lockDelayCounter = 0;
+    this.lockMoveCounter = 0;
+
     for (const mino of this.tetromino.shape.list) {
       if (!mino.canCollide) {
         continue;
@@ -413,7 +424,9 @@ class Game extends Phaser.Scene {
         (mino.getBounds().top - this.board.getBounds().top) / this.minoHeight;
 
       const lockedRow = this.lockedRows[lockedMinoRowIndex];
-      lockedRow.push(mino);
+      if (lockedRow) {
+        lockedRow.push(mino);
+      }
     }
     this.tetromino = null;
     this.ghostTetromino.shape.destroy();
@@ -485,8 +498,6 @@ class Game extends Phaser.Scene {
       const isLocked = isLockDelayReached || isLockMoveLimitReached;
 
       if (isLocked) {
-        this.lockDelayCounter = 0;
-        this.lockMoveCounter = 0;
         this.lockTetromino();
         this.spawnTetromino();
       }
@@ -509,7 +520,19 @@ class Game extends Phaser.Scene {
   }
 
   handleGravity() {
-    // apply gravity, where 1G = 1 mino per frame
+    const isHardDrop = this.keySpace.isDown;
+    if (isHardDrop && !this.isHardDropping) {
+      this.isHardDropping = true;
+      this.yDelta = 0;
+      this.shiftToBottom(this.tetromino.shape);
+      this.lockTetromino();
+      this.spawnTetromino();
+      return;
+    }
+
+    if (this.keySpace.isUp) {
+      this.isHardDropping = false;
+    }
 
     const gravityJson = this.cache.json.get("gravity");
     const maxGravityLevel = 15;
@@ -520,6 +543,7 @@ class Game extends Phaser.Scene {
     if (isSoftDrop) {
       gravity = gravityJson["softdrop"];
     }
+
     this.yDelta += gravity * this.minoHeight;
     const shouldDropRow = this.yDelta >= this.minoHeight;
     if (shouldDropRow) {
