@@ -51,7 +51,7 @@ Wall kick data and implementation taken from https://tetris.wiki/Super_Rotation_
 - [x] Allow movement in -1 and -2 rows
 - [ ] Board gridlines
 - [ ] Gridlines between tetrominoes
-- [ ] Ghost tetromino
+- [x] Ghost tetromino
 - [ ] Hard drop
 - [ ] Hard drop - animation
 - [ ] Hard drop - score

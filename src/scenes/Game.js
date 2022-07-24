@@ -222,6 +222,7 @@ class Game extends Phaser.Scene {
     const rotationIndex = 0;
     const tetrominoJSON = tetrominoRotations[rotationIndex];
     const tetrominoColor = tetrominoColors[tetrominoName];
+    const borderColor = colors.hexBlack;
 
     // spawn in top -2 rows, at column index 3 (4th column)
     const x = this.board.x + 3 * this.minoWidth;
@@ -230,16 +231,33 @@ class Game extends Phaser.Scene {
       tetrominoJSON,
       { x, y },
       tetrominoColor,
-      colors.hexBlack
+      borderColor
     );
     this.tetromino = {
       name: tetrominoName,
       rotation: rotationIndex,
       shape: randomTetromino,
     };
+    this.updateGhostTetromino();
   }
 
-  createTetromino(tetromino, coord, fillColor, strokeColor) {
+  updateGhostTetromino() {
+    // spawn ghost tetromino at bottom of board
+    if (this.ghostTetromino) {
+      this.ghostTetromino.shape.destroy();
+      this.ghostTetromino = null;
+    }
+    this.ghostTetromino = this.cloneTetromino(this.tetromino);
+    this.ghostTetromino.shape.setAlpha(0.5);
+
+    // shift ghost tetromino down until it is colliding with something
+    while (this.canMove(this.ghostTetromino.shape)) {
+      this.ghostTetromino.shape.y += this.minoHeight;
+    }
+    this.ghostTetromino.shape.y -= this.minoHeight;
+  }
+
+  createTetromino(tetromino, coord, fillColor, strokeColor, alpha = 1) {
     const container = this.add.container();
     tetromino.forEach((row, yIndex) => {
       row.forEach((bit, xIndex) => {
@@ -252,7 +270,8 @@ class Game extends Phaser.Scene {
           this.minoWidth,
           this.minoHeight,
           fillColor,
-          strokeColor
+          strokeColor,
+          alpha
         );
         container.add(mino);
 
@@ -263,8 +282,8 @@ class Game extends Phaser.Scene {
     return container;
   }
 
-  createMino(x, y, width, height, fillColor, strokeColor) {
-    const mino = this.add.rectangle(x, y, width, height, fillColor);
+  createMino(x, y, width, height, fillColor, strokeColor, alpha = 1) {
+    const mino = this.add.rectangle(x, y, width, height, fillColor, alpha);
     mino.setStrokeStyle(1, strokeColor);
     mino.setOrigin(0);
     return mino;
@@ -312,6 +331,18 @@ class Game extends Phaser.Scene {
           });
         }
 
+        for (const ghostMino of this.ghostTetromino.shape.list) {
+          const scopedYDelta = yDelta;
+          const newY = ghostMino.y + scopedYDelta;
+          this.tweens.add({
+            targets: ghostMino,
+            y: newY,
+            delay: animationDelay(ghostMino),
+            duration: lineClearAnimationDuration,
+            ease,
+          });
+        }
+
         this.lockedRows[rowIndex + indexDelta] = this.lockedRows[rowIndex];
         this.lockedRows[rowIndex] = [];
       }
@@ -339,6 +370,7 @@ class Game extends Phaser.Scene {
             },
           });
         }
+        this.updateGhostTetromino();
       }
     }
 
@@ -376,6 +408,8 @@ class Game extends Phaser.Scene {
       lockedRow.push(mino);
     }
     this.tetromino = null;
+    this.ghostTetromino.shape.destroy();
+    this.ghostTetromino = null;
   }
 
   handleShiftRight() {
@@ -626,6 +660,7 @@ class Game extends Phaser.Scene {
 
     if (this.canMove(possibleTetromino.shape)) {
       this.tetromino.shape.x -= this.minoWidth;
+      this.updateGhostTetromino();
       this.updateLockCountersForMove();
     }
     possibleTetromino.shape.destroy();
@@ -637,6 +672,7 @@ class Game extends Phaser.Scene {
 
     if (this.canMove(possibleTetromino.shape)) {
       this.tetromino.shape.x += this.minoWidth;
+      this.updateGhostTetromino();
       this.updateLockCountersForMove();
     }
     possibleTetromino.shape.destroy();
@@ -668,6 +704,7 @@ class Game extends Phaser.Scene {
         this.tetromino = shiftedTetromino;
         this.tetromino.shape.x = shiftedTetromino.shape.x;
         this.tetromino.shape.y = shiftedTetromino.shape.y;
+        this.updateGhostTetromino();
         break;
       } else {
         shiftedTetromino.shape.destroy();
