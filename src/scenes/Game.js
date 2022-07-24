@@ -283,7 +283,7 @@ class Game extends Phaser.Scene {
     this.setScore(newScore);
   }
 
-  clearCompletedRows() {
+  handleClearingRows() {
     const ease = Phaser.Math.Easing.Sine.InOut;
     const animationDelay = (mino) => {
       const minoColIndex = (mino) =>
@@ -376,16 +376,8 @@ class Game extends Phaser.Scene {
     this.tetromino = null;
   }
 
-  update(time, delta) {
-    if (this.gameOver) {
-      return;
-    }
-
-    // assuming 60fps
-
-    this.clearCompletedRows();
-
-    const { das, arr, lockDelay, lockMoveLimit } = this.cache.json.get("speed");
+  handleShiftRight() {
+    const { das, arr } = this.cache.json.get("speed");
 
     if (this.keyRight.isDown) {
       if (this.rightDasCounter === 0) {
@@ -406,7 +398,10 @@ class Game extends Phaser.Scene {
       this.rightDasCounter = 0;
       this.rightArrCounter = 0;
     }
+  }
 
+  handleShiftLeft() {
+    const { das, arr } = this.cache.json.get("speed");
     if (this.keyLeft.isDown) {
       if (this.leftDasCounter === 0) {
         this.shiftLeft();
@@ -426,15 +421,10 @@ class Game extends Phaser.Scene {
       this.leftDasCounter = 0;
       this.leftArrCounter = 0;
     }
+  }
 
-    if (this.keyUp.isDown) {
-      this.rotateRight();
-    }
-
-    if (this.keyUp.isUp) {
-      // rotating requires key lifts
-      this.isRotating = false;
-    }
+  handleLocking() {
+    const { lockDelay, lockMoveLimit } = this.cache.json.get("speed");
 
     if (this.isLocking()) {
       this.lockDelayCounter++;
@@ -457,8 +447,26 @@ class Game extends Phaser.Scene {
         this.spawnTetromino();
       }
     }
+  }
 
+  update(time, delta) {
+    if (this.gameOver) {
+      return;
+    }
+
+    // assuming 60fps
+
+    this.handleClearingRows();
+    this.handleShiftRight();
+    this.handleShiftLeft();
+    this.handleRotateRight();
+    this.handleLocking();
+    this.handleGravity();
+  }
+
+  handleGravity() {
     // apply gravity, where 1G = 1 mino per frame
+
     const gravityJson = this.cache.json.get("gravity");
     const maxGravityLevel = 15;
     const gravityKey =
@@ -475,6 +483,17 @@ class Game extends Phaser.Scene {
 
       this.tetromino.shape.y += yDelta;
       this.yDelta = remainder;
+    }
+  }
+
+  handleRotateRight() {
+    if (this.keyUp.isDown) {
+      this.rotateRight();
+    }
+
+    if (this.keyUp.isUp) {
+      // rotating requires key lifts
+      this.isRotating = false;
     }
   }
 
