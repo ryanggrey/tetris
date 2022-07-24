@@ -319,18 +319,13 @@ class Game extends Phaser.Scene {
     for (var rowIndex = this.lockedRows.length - 1; rowIndex >= 0; rowIndex--) {
       const lockedRow = this.lockedRows[rowIndex];
       if (indexDelta > 0) {
-        for (const lockedMino of lockedRow) {
-          const scopedYDelta = yDelta;
-          const newY = lockedMino.y + scopedYDelta;
-          this.tweens.add({
-            targets: lockedMino,
-            y: newY,
-            delay: animationDelay(lockedMino),
-            duration: lineClearAnimationDuration,
-            ease,
-          });
-        }
-
+        this.animateLineDrop(lockedRow, yDelta, animationDelay, ease);
+        this.animateLineDrop(
+          this.ghostTetromino.shape.list,
+          yDelta,
+          animationDelay,
+          ease
+        );
         for (const ghostMino of this.ghostTetromino.shape.list) {
           const scopedYDelta = yDelta;
           const newY = ghostMino.y + scopedYDelta;
@@ -377,6 +372,19 @@ class Game extends Phaser.Scene {
     if (rowsCleared > 0) {
       this.incrementScoreFor(rowsCleared);
       this.incrementTotalRowsClearedBy(rowsCleared);
+    }
+  }
+
+  animateLineDrop(minos, yDelta, animationDelay, ease) {
+    for (const mino of minos) {
+      const newY = mino.y + yDelta;
+      this.tweens.add({
+        targets: mino,
+        y: newY,
+        delay: animationDelay(mino),
+        duration: lineClearAnimationDuration,
+        ease,
+      });
     }
   }
 
