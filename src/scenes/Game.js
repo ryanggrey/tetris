@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { colors } from "../colors";
 import levelCalculator from "../levelCalculator";
+import TetrominoPicker from "../TetrominoPicker";
 
 const boardColumns = 10;
 const boardRows = 20;
@@ -9,6 +10,7 @@ const lineClearAnimationDuration = 200;
 class Game extends Phaser.Scene {
   constructor() {
     super({ key: "GameScene" });
+    this.tetrominoPicker = new TetrominoPicker();
   }
 
   init(data) {}
@@ -215,13 +217,10 @@ class Game extends Phaser.Scene {
   }
 
   spawnTetromino() {
-    const tetrominoEntries = Object.entries(this.cache.json.get("tetrominoes"));
     const tetrominoColors = this.cache.json.get("tetrominoColors");
-
-    const randomIndex = Phaser.Math.Between(0, tetrominoEntries.length - 1);
-    const randomTetrominoEntry = tetrominoEntries[randomIndex];
-    const tetrominoName = randomTetrominoEntry[0];
-    const tetrominoRotations = randomTetrominoEntry[1];
+    const tetrominoName = this.tetrominoPicker.pick();
+    const tetrominoRotations =
+      this.cache.json.get("tetrominoes")[tetrominoName];
     const rotationIndex = 0;
     const tetrominoJSON = tetrominoRotations[rotationIndex];
     const tetrominoColor = tetrominoColors[tetrominoName];
