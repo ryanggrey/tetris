@@ -3,5 +3,6 @@
   "2": 300,
   "3": 500,
   "4": 800,
-  "softdropPerRow": 1
+  "softDropPerRow": 1,
+  "hardDropPerRow": 2
 }

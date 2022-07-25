@@ -253,13 +253,14 @@ class Game extends Phaser.Scene {
     };
     // shift tetromino down until it is colliding with something
 
+    const originalY = tetromino.shape.y;
     var lastAfterImage = createAfterImage();
-    var rowIndex = 0;
+    var numberOfRows = 0;
     while (this.canMove(tetromino.shape)) {
       tetromino.shape.y += this.minoHeight;
       this.tweens.add({
         targets: lastAfterImage,
-        delay: rowIndex * 5,
+        delay: numberOfRows * 5,
         alpha: isAnimated ? 0.5 : 0,
         duration: 50,
         repeat: 0,
@@ -270,9 +271,13 @@ class Game extends Phaser.Scene {
       });
 
       lastAfterImage = createAfterImage();
-      rowIndex++;
+      numberOfRows++;
     }
     tetromino.shape.y -= this.minoHeight;
+    tetromino.shape.y = Math.max(tetromino.shape.y, originalY);
+    numberOfRows--;
+
+    return Math.max(numberOfRows, 0);
   }
 
   updateGhostTetromino() {
@@ -557,7 +562,11 @@ class Game extends Phaser.Scene {
     if (isHardDrop && !this.isHardDropping) {
       this.isHardDropping = true;
       this.yDelta = 0;
-      this.shiftToBottom(this.tetromino, true);
+      const numberOfRowsDropped = this.shiftToBottom(this.tetromino, true);
+      const { hardDropPerRow } = this.cache.json.get("score");
+      const newScore = this.score + hardDropPerRow * numberOfRowsDropped;
+      this.setScore(newScore, false);
+
       this.lockTetromino();
       this.spawnTetromino();
       return;
@@ -588,8 +597,8 @@ class Game extends Phaser.Scene {
       this.yDelta = remainder;
 
       if (isSoftDrop) {
-        const { softdropPerRow } = this.cache.json.get("score");
-        const newScore = this.score + softdropPerRow;
+        const { softDropPerRow } = this.cache.json.get("score");
+        const newScore = this.score + softDropPerRow;
         this.setScore(newScore, false);
       }
     }
