@@ -244,13 +244,35 @@ class Game extends Phaser.Scene {
     this.updateGhostTetromino();
   }
 
-  shiftToBottom(tetromino) {
+  shiftToBottom(tetromino, isAnimated) {
+    const createAfterImage = () => {
+      const afterImage = this.cloneTetromino(tetromino).shape;
+      afterImage.list.map((mino) => mino.setStrokeStyle(null));
+      afterImage.setAlpha(0);
+      return afterImage;
+    };
     // shift tetromino down until it is colliding with something
 
-    while (this.canMove(tetromino)) {
-      tetromino.y += this.minoHeight;
+    var lastAfterImage = createAfterImage();
+    var rowIndex = 0;
+    while (this.canMove(tetromino.shape)) {
+      tetromino.shape.y += this.minoHeight;
+      this.tweens.add({
+        targets: lastAfterImage,
+        delay: rowIndex * 5,
+        alpha: isAnimated ? 0.5 : 0,
+        duration: 50,
+        repeat: 0,
+        yoyo: true,
+        onComplete: () => {
+          lastAfterImage.destroy();
+        },
+      });
+
+      lastAfterImage = createAfterImage();
+      rowIndex++;
     }
-    tetromino.y -= this.minoHeight;
+    tetromino.shape.y -= this.minoHeight;
   }
 
   updateGhostTetromino() {
@@ -260,9 +282,9 @@ class Game extends Phaser.Scene {
       this.ghostTetromino = null;
     }
     this.ghostTetromino = this.cloneTetromino(this.tetromino);
-    this.ghostTetromino.shape.setAlpha(0.5);
+    this.ghostTetromino.shape.setAlpha(0.4);
 
-    this.shiftToBottom(this.ghostTetromino.shape);
+    this.shiftToBottom(this.ghostTetromino, false);
   }
 
   createTetromino(tetromino, coord, fillColor, strokeColor, alpha = 1) {
@@ -412,6 +434,18 @@ class Game extends Phaser.Scene {
     this.setLevel(newLevel);
   }
 
+  rowIndexFrom(mino) {
+    const rowIndex =
+      (mino.getBounds().top - this.board.getBounds().top) / this.minoHeight;
+    return rowIndex;
+  }
+
+  columnIndexFrom(mino) {
+    const columnIndex =
+      (mino.getBounds().left - this.board.getBounds().left) / this.minoWidth;
+    return columnIndex;
+  }
+
   lockTetromino() {
     this.lockDelayCounter = 0;
     this.lockMoveCounter = 0;
@@ -420,8 +454,7 @@ class Game extends Phaser.Scene {
       if (!mino.canCollide) {
         continue;
       }
-      const lockedMinoRowIndex =
-        (mino.getBounds().top - this.board.getBounds().top) / this.minoHeight;
+      const lockedMinoRowIndex = this.rowIndexFrom(mino);
 
       const lockedRow = this.lockedRows[lockedMinoRowIndex];
       if (lockedRow) {
@@ -524,7 +557,7 @@ class Game extends Phaser.Scene {
     if (isHardDrop && !this.isHardDropping) {
       this.isHardDropping = true;
       this.yDelta = 0;
-      this.shiftToBottom(this.tetromino.shape);
+      this.shiftToBottom(this.tetromino, true);
       this.lockTetromino();
       this.spawnTetromino();
       return;
