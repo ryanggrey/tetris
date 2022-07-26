@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { colors } from "../colors";
 import levelCalculator from "../levelCalculator";
-import TetrominoPicker from "../TetrominoPicker";
+import NextTetrominoManager from "../NextTetrominoManager";
 
 const boardColumns = 10;
 const boardRows = 20;
@@ -10,7 +10,7 @@ const lineClearAnimationDuration = 200;
 class Game extends Phaser.Scene {
   constructor() {
     super({ key: "GameScene" });
-    this.tetrominoPicker = new TetrominoPicker();
+    this.nextTetrominoManager = new NextTetrominoManager();
   }
 
   init(data) {}
@@ -122,6 +122,7 @@ class Game extends Phaser.Scene {
     this.createControls();
     this.createBoard();
     this.createScoreSection();
+    this.updateNextSection();
     this.spawnTetromino();
     this.gameOver = false;
   }
@@ -188,6 +189,105 @@ class Game extends Phaser.Scene {
     );
   }
 
+  updateNextSection() {
+    if (this.nextKey) {
+      this.nextKey.destroy();
+      this.nextTetromino1.shape.destroy();
+      this.nextTetromino1 = null;
+      this.nextTetromino2.shape.destroy();
+      this.nextTetromino2 = null;
+      this.nextTetromino3.shape.destroy();
+      this.nextTetromino3 = null;
+    }
+
+    const groupPadding = 10;
+    const interPadding = this.minoHeight / 2;
+    const fieldHeight = this.minoHeight * 2;
+    const fieldWidth = this.minoWidth * 4;
+    const boardTop = this.board.getBounds().top;
+    const nextKeyY = boardTop + groupPadding;
+
+    const nextKeyX = this.nextSectionDimensions.x + groupPadding * 2;
+    const nextTetrominoX = nextKeyX;
+
+    const color = colors.hexBlack;
+    const textStyle = {
+      color,
+      width: fieldWidth,
+      align: "center",
+      fixedWidth: fieldWidth,
+    };
+    this.nextKey = this.add.text(nextKeyX, nextKeyY, "Next", textStyle);
+
+    const nextTetromino1Y = nextKeyY + this.nextKey.height + interPadding;
+    const nextTetromino2Y = nextTetromino1Y + fieldHeight + interPadding;
+    const nextTetromino3Y = nextTetromino2Y + fieldHeight + interPadding;
+
+    const nextTetrominoes = this.nextTetrominoManager.peek();
+    const nextTetromino1Name = nextTetrominoes[0];
+    const nextTetromino2Name = nextTetrominoes[1];
+    const nextTetromino3Name = nextTetrominoes[2];
+
+    const recenter = (tetromino) => {
+      const collidables = (tetromino) => {
+        const columns = new Set();
+        const rows = new Set();
+        let minX = Number.MAX_SAFE_INTEGER;
+        let minY = Number.MAX_SAFE_INTEGER;
+        for (const mino of tetromino.shape.list) {
+          if (!mino.canCollide) {
+            continue;
+          }
+          const column = this.columnIndexFrom(mino);
+          const row = this.rowIndexFrom(mino);
+          columns.add(column);
+          rows.add(row);
+          minX = Math.min(minX, mino.x);
+          minY = Math.min(minY, mino.y);
+        }
+        return {
+          collidableX: minX,
+          collidableY: minY,
+          collidableWidth: columns.size * this.minoWidth,
+          collidableHeight: rows.size * this.minoHeight,
+        };
+      };
+
+      const { collidableX, collidableY, collidableWidth, collidableHeight } =
+        collidables(tetromino);
+      const shiftX =
+        tetromino.shape.getBounds().left +
+        fieldWidth / 2 -
+        (collidableX + collidableWidth / 2);
+      const shiftY =
+        tetromino.shape.getBounds().top +
+        fieldHeight / 2 -
+        (collidableY + collidableHeight / 2);
+      tetromino.shape.list.forEach((mino) => {
+        mino.x += shiftX;
+        mino.y += shiftY;
+      });
+    };
+
+    this.nextTetromino1 = this.spawnTetrominoNamed(nextTetromino1Name, {
+      x: nextTetrominoX,
+      y: nextTetromino1Y,
+    });
+    recenter(this.nextTetromino1);
+
+    this.nextTetromino2 = this.spawnTetrominoNamed(nextTetromino2Name, {
+      x: nextTetrominoX,
+      y: nextTetromino2Y,
+    });
+    recenter(this.nextTetromino2);
+
+    this.nextTetromino3 = this.spawnTetrominoNamed(nextTetromino3Name, {
+      x: nextTetrominoX,
+      y: nextTetromino3Y,
+    });
+    recenter(this.nextTetromino3);
+  }
+
   createControls() {
     this.keyRight = this.input.keyboard.addKey(
       Phaser.Input.Keyboard.KeyCodes.RIGHT
@@ -217,8 +317,18 @@ class Game extends Phaser.Scene {
   }
 
   spawnTetromino() {
+    const tetrominoName = this.nextTetrominoManager.pick();
+    // spawn in top -2 rows, at column index 3 (4th column)
+    const x = this.board.x + 3 * this.minoWidth;
+    const y = this.board.y + -2 * this.minoHeight;
+
+    this.tetromino = this.spawnTetrominoNamed(tetrominoName, { x, y });
+    this.updateGhostTetromino();
+    this.updateNextSection();
+  }
+
+  spawnTetrominoNamed(tetrominoName, coord) {
     const tetrominoColors = this.cache.json.get("tetrominoColors");
-    const tetrominoName = this.tetrominoPicker.pick();
     const tetrominoRotations =
       this.cache.json.get("tetrominoes")[tetrominoName];
     const rotationIndex = 0;
@@ -226,21 +336,19 @@ class Game extends Phaser.Scene {
     const tetrominoColor = tetrominoColors[tetrominoName];
     const borderColor = colors.hexBlack;
 
-    // spawn in top -2 rows, at column index 3 (4th column)
-    const x = this.board.x + 3 * this.minoWidth;
-    const y = this.board.y + -2 * this.minoHeight;
     const randomTetromino = this.createTetromino(
       tetrominoJSON,
-      { x, y },
+      coord,
       tetrominoColor,
       borderColor
     );
-    this.tetromino = {
+    const tetromino = {
       name: tetrominoName,
       rotation: rotationIndex,
       shape: randomTetromino,
     };
-    this.updateGhostTetromino();
+
+    return tetromino;
   }
 
   shiftToBottom(tetromino, isAnimated) {

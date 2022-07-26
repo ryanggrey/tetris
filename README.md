@@ -71,7 +71,7 @@ Wall kick data and implementation taken from https://tetris.wiki/Super_Rotation_
 - [x] Lines tracking - level incrementing
 - [x] Text change animations
 - [ ] High score tracking
-- [ ] Next 5 tetrominoes
+- [x] Next 3 tetrominoes
 - [ ] Hold tetromino
 - [ ] Switch held tetromino
 - [ ] Don't assume 60fps
