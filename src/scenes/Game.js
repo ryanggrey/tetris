@@ -193,11 +193,8 @@ class Game extends Phaser.Scene {
     if (this.nextKey) {
       this.nextKey.destroy();
       this.nextTetromino1.shape.destroy();
-      this.nextTetromino1 = null;
       this.nextTetromino2.shape.destroy();
-      this.nextTetromino2 = null;
       this.nextTetromino3.shape.destroy();
-      this.nextTetromino3 = null;
     }
 
     const groupPadding = 10;
@@ -207,7 +204,7 @@ class Game extends Phaser.Scene {
     const boardTop = this.board.getBounds().top;
     const nextKeyY = boardTop + groupPadding;
 
-    const nextKeyX = this.nextSectionDimensions.x + groupPadding * 2;
+    const nextKeyX = this.nextSectionDimensions.x + groupPadding;
     const nextTetrominoX = nextKeyX;
 
     const color = colors.hexBlack;
@@ -219,32 +216,41 @@ class Game extends Phaser.Scene {
     };
     this.nextKey = this.add.text(nextKeyX, nextKeyY, "Next", textStyle);
 
-    const nextTetromino1Y = nextKeyY + this.nextKey.height + interPadding;
-    const nextTetromino2Y = nextTetromino1Y + fieldHeight + interPadding;
-    const nextTetromino3Y = nextTetromino2Y + fieldHeight + interPadding;
+    const nextTetrominoY1 = nextKeyY + interPadding + this.nextKey.height;
+    const nextTetrominoY2 = nextTetrominoY1 + interPadding + fieldHeight;
+    const nextTetrominoY3 = nextTetrominoY2 + interPadding + fieldHeight;
 
     const nextTetrominoes = this.nextTetrominoManager.peek();
-    const nextTetromino1Name = nextTetrominoes[0];
-    const nextTetromino2Name = nextTetrominoes[1];
-    const nextTetromino3Name = nextTetrominoes[2];
+    const t1Name = nextTetrominoes[0];
+    const t2Name = nextTetrominoes[1];
+    const t3Name = nextTetrominoes[2];
 
-    const recenter = (tetromino) => {
-      const collidables = (tetromino) => {
+    const getCenteredCoords = (tetrominoJSON, anchorCoord) => {
+      const getCollidableDimensions = () => {
         const columns = new Set();
         const rows = new Set();
         let minX = Number.MAX_SAFE_INTEGER;
         let minY = Number.MAX_SAFE_INTEGER;
-        for (const mino of tetromino.shape.list) {
-          if (!mino.canCollide) {
-            continue;
-          }
-          const column = this.columnIndexFrom(mino);
-          const row = this.rowIndexFrom(mino);
-          columns.add(column);
-          rows.add(row);
-          minX = Math.min(minX, mino.x);
-          minY = Math.min(minY, mino.y);
-        }
+
+        tetrominoJSON.forEach((row, rowIndex) => {
+          row.forEach((bit, columnIndex) => {
+            if (!bit) {
+              return;
+            }
+
+            columns.add(columnIndex);
+            rows.add(rowIndex);
+
+            const columnWidth = columnIndex * this.minoWidth;
+            const rowHeight = rowIndex * this.minoHeight;
+            const x = 0 + columnWidth;
+            const y = 0 + rowHeight;
+
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
+          });
+        });
+
         return {
           collidableX: minX,
           collidableY: minY,
@@ -254,38 +260,40 @@ class Game extends Phaser.Scene {
       };
 
       const { collidableX, collidableY, collidableWidth, collidableHeight } =
-        collidables(tetromino);
-      const shiftX =
-        tetromino.shape.getBounds().left +
-        fieldWidth / 2 -
-        (collidableX + collidableWidth / 2);
-      const shiftY =
-        tetromino.shape.getBounds().top +
-        fieldHeight / 2 -
-        (collidableY + collidableHeight / 2);
-      tetromino.shape.list.forEach((mino) => {
-        mino.x += shiftX;
-        mino.y += shiftY;
-      });
+        getCollidableDimensions(tetrominoJSON);
+
+      const x =
+        anchorCoord.x + fieldWidth / 2 - (collidableX + collidableWidth / 2);
+
+      const y =
+        anchorCoord.y + fieldHeight / 2 - (collidableY + collidableHeight / 2);
+
+      return { x, y };
     };
 
-    this.nextTetromino1 = this.spawnTetrominoNamed(nextTetromino1Name, {
-      x: nextTetrominoX,
-      y: nextTetromino1Y,
-    });
-    recenter(this.nextTetromino1);
+    const createNextTetromino = (tetrominoName, anchorCoord) => {
+      const tetrominoes = this.cache.json.get("tetrominoes");
+      const tetrominoJSON = tetrominoes[tetrominoName];
+      const tetrominoCoords = getCenteredCoords(tetrominoJSON[0], anchorCoord);
+      const tetromino = this.spawnTetrominoNamed(tetrominoName, {
+        x: tetrominoCoords.x,
+        y: tetrominoCoords.y,
+      });
+      return tetromino;
+    };
 
-    this.nextTetromino2 = this.spawnTetrominoNamed(nextTetromino2Name, {
+    this.nextTetromino1 = createNextTetromino(t1Name, {
       x: nextTetrominoX,
-      y: nextTetromino2Y,
+      y: nextTetrominoY1,
     });
-    recenter(this.nextTetromino2);
-
-    this.nextTetromino3 = this.spawnTetrominoNamed(nextTetromino3Name, {
+    this.nextTetromino2 = createNextTetromino(t2Name, {
       x: nextTetrominoX,
-      y: nextTetromino3Y,
+      y: nextTetrominoY2,
     });
-    recenter(this.nextTetromino3);
+    this.nextTetromino3 = createNextTetromino(t3Name, {
+      x: nextTetrominoX,
+      y: nextTetrominoY3,
+    });
   }
 
   createControls() {
@@ -316,6 +324,14 @@ class Game extends Phaser.Scene {
     this.board.setStrokeStyle(1, colors.hexBlack);
   }
 
+  getTetrominoJSON(tetrominoName) {
+    const tetrominoRotations =
+      this.cache.json.get("tetrominoes")[tetrominoName];
+    const rotationIndex = 0;
+    const tetrominoJSON = tetrominoRotations[rotationIndex];
+    return tetrominoJSON;
+  }
+
   spawnTetromino() {
     const tetrominoName = this.nextTetrominoManager.pick();
     // spawn in top -2 rows, at column index 3 (4th column)
@@ -329,12 +345,10 @@ class Game extends Phaser.Scene {
 
   spawnTetrominoNamed(tetrominoName, coord) {
     const tetrominoColors = this.cache.json.get("tetrominoColors");
-    const tetrominoRotations =
-      this.cache.json.get("tetrominoes")[tetrominoName];
-    const rotationIndex = 0;
-    const tetrominoJSON = tetrominoRotations[rotationIndex];
+    const tetrominoJSON = this.getTetrominoJSON(tetrominoName);
     const tetrominoColor = tetrominoColors[tetrominoName];
     const borderColor = colors.hexBlack;
+    const rotationIndex = 0;
 
     const randomTetromino = this.createTetromino(
       tetrominoJSON,
@@ -399,9 +413,9 @@ class Game extends Phaser.Scene {
     this.shiftToBottom(this.ghostTetromino, false);
   }
 
-  createTetromino(tetromino, coord, fillColor, strokeColor, alpha = 1) {
+  createTetromino(tetrominoJSON, coord, fillColor, strokeColor, alpha = 1) {
     const container = this.add.container();
-    tetromino.forEach((row, yIndex) => {
+    tetrominoJSON.forEach((row, yIndex) => {
       row.forEach((bit, xIndex) => {
         const x = coord.x + xIndex * this.minoWidth;
         const y = coord.y + yIndex * this.minoHeight;
