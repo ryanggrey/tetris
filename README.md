@@ -61,6 +61,7 @@ Wall kick data and implementation taken from https://tetris.wiki/Super_Rotation_
 - [x] Hard drop - animation
 - [x] Fix spawn randomisation
 - [x] Hard drop - score
+- [ ] Sharp rendering
 - [ ] Sound effects
 - [ ] Music
 - [ ] Game over screen

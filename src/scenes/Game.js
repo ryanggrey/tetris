@@ -1,10 +1,10 @@
 import Phaser from "phaser";
-import { colors } from "../colors";
 import levelCalculator from "../levelCalculator";
 import NextTetrominoManager from "../NextTetrominoManager";
 
 const boardColumns = 10;
 const boardRows = 20;
+const gridLineWidth = 1;
 const lineClearAnimationDuration = 200;
 
 class Game extends Phaser.Scene {
@@ -18,10 +18,61 @@ class Game extends Phaser.Scene {
   preload() {
     this.load.json("gravity", "assets/gravity.json");
     this.load.json("speed", "assets/speed.json");
-    this.load.json("tetrominoColors", "assets/tetrominoColors.json");
+    this.load.json("colors", "assets/colors.json");
     this.load.json("tetrominoes", "assets/tetrominoes.json");
     this.load.json("wallkick", "assets/wallkick.json");
     this.load.json("score", "assets/score.json");
+  }
+
+  getCacheKey(key) {
+    return this.cache.json.get(key);
+  }
+
+  getGravity() {
+    return this.getCacheKey("gravity");
+  }
+
+  getSpeed() {
+    return this.getCacheKey("speed");
+  }
+
+  getColors() {
+    return this.getCacheKey("colors");
+  }
+
+  getRectangleColor(rawColor) {
+    return rawColor.replace("#", "0x");
+  }
+
+  getTetrominoColor(tetrominoName) {
+    return this.getColors()[tetrominoName];
+  }
+
+  getTetrominoBorderColor(tetrominoName) {
+    const borderName = `${tetrominoName}Border`;
+    return this.getColors()[borderName];
+  }
+
+  getTetrominoes() {
+    return this.getCacheKey("tetrominoes");
+  }
+
+  getTetromino(tetrominoName) {
+    return this.getTetrominoes()[tetrominoName];
+  }
+
+  getTetrominoJSON(tetrominoName, rotationIndex = 0) {
+    const tetrominoRotations = this.getTetromino(tetrominoName);
+    const tetrominoJSON = tetrominoRotations[rotationIndex];
+    return tetrominoJSON;
+  }
+
+  getWallkick(tetrominoName) {
+    return this.getCacheKey("wallkick")[tetrominoName];
+  }
+
+  getScore(scoreName) {
+    return this.getCacheKey("score")[scoreName];
   }
 
   setupLockedRows() {
@@ -158,7 +209,7 @@ class Game extends Phaser.Scene {
     const scoreValueY = levelKeyY - groupPadding - fieldHeight;
     const scoreKeyY = scoreValueY - interPadding - fieldHeight;
 
-    const color = colors.hexBlack;
+    const color = this.getColors().text;
     const textStyle = {
       color,
       width: fieldWidth,
@@ -207,7 +258,7 @@ class Game extends Phaser.Scene {
     const nextKeyX = this.nextSectionDimensions.x + groupPadding;
     const nextTetrominoX = nextKeyX;
 
-    const color = colors.hexBlack;
+    const color = this.getColors().text;
     const textStyle = {
       color,
       width: fieldWidth,
@@ -272,9 +323,8 @@ class Game extends Phaser.Scene {
     };
 
     const createNextTetromino = (tetrominoName, anchorCoord) => {
-      const tetrominoes = this.cache.json.get("tetrominoes");
-      const tetrominoJSON = tetrominoes[tetrominoName];
-      const tetrominoCoords = getCenteredCoords(tetrominoJSON[0], anchorCoord);
+      const tetrominoJSON = this.getTetrominoJSON(tetrominoName);
+      const tetrominoCoords = getCenteredCoords(tetrominoJSON, anchorCoord);
       const tetromino = this.spawnTetrominoNamed(tetrominoName, {
         x: tetrominoCoords.x,
         y: tetrominoCoords.y,
@@ -321,15 +371,8 @@ class Game extends Phaser.Scene {
 
     this.board = this.add.rectangle(x, y, boardWidth, boardHeight);
     this.board.setOrigin(0);
-    this.board.setStrokeStyle(1, colors.hexBlack);
-  }
-
-  getTetrominoJSON(tetrominoName) {
-    const tetrominoRotations =
-      this.cache.json.get("tetrominoes")[tetrominoName];
-    const rotationIndex = 0;
-    const tetrominoJSON = tetrominoRotations[rotationIndex];
-    return tetrominoJSON;
+    const color = this.getRectangleColor(this.getColors().gridLine);
+    this.board.setStrokeStyle(1, color);
   }
 
   spawnTetromino() {
@@ -344,17 +387,16 @@ class Game extends Phaser.Scene {
   }
 
   spawnTetrominoNamed(tetrominoName, coord) {
-    const tetrominoColors = this.cache.json.get("tetrominoColors");
     const tetrominoJSON = this.getTetrominoJSON(tetrominoName);
-    const tetrominoColor = tetrominoColors[tetrominoName];
-    const borderColor = colors.hexBlack;
+    const tetrominoColor = this.getTetrominoColor(tetrominoName);
+    const tetrominoBorderColor = this.getTetrominoBorderColor(tetrominoName);
     const rotationIndex = 0;
 
     const randomTetromino = this.createTetromino(
       tetrominoJSON,
       coord,
       tetrominoColor,
-      borderColor
+      tetrominoBorderColor
     );
     const tetromino = {
       name: tetrominoName,
@@ -408,7 +450,10 @@ class Game extends Phaser.Scene {
       this.ghostTetromino = null;
     }
     this.ghostTetromino = this.cloneTetromino(this.tetromino);
-    this.ghostTetromino.shape.setAlpha(0.4);
+
+    this.ghostTetromino.shape.list.forEach((mino) => {
+      mino.fillAlpha = 0.3;
+    });
 
     this.shiftToBottom(this.ghostTetromino, false);
   }
@@ -439,8 +484,15 @@ class Game extends Phaser.Scene {
   }
 
   createMino(x, y, width, height, fillColor, strokeColor, alpha = 1) {
-    const mino = this.add.rectangle(x, y, width, height, fillColor, alpha);
-    mino.setStrokeStyle(1, strokeColor);
+    const mino = this.add.rectangle(
+      x,
+      y,
+      width,
+      height,
+      this.getRectangleColor(fillColor),
+      alpha
+    );
+    mino.setStrokeStyle(1, this.getRectangleColor(strokeColor));
     mino.setOrigin(0);
     return mino;
   }
@@ -450,12 +502,11 @@ class Game extends Phaser.Scene {
   }
 
   incrementScoreFor(numberOfLinesCleared) {
-    const scores = this.cache.json.get("score");
-    const perLevel = scores[`${numberOfLinesCleared}`];
-    if (!perLevel) {
+    const scorePerLevel = this.getScore(`${numberOfLinesCleared}`);
+    if (!scorePerLevel) {
       return;
     }
-    const earned = perLevel * this.level;
+    const earned = scorePerLevel * this.level;
     const newScore = this.score + earned;
     this.setScore(newScore);
   }
@@ -593,7 +644,7 @@ class Game extends Phaser.Scene {
   }
 
   handleShiftRight() {
-    const { das, arr } = this.cache.json.get("speed");
+    const { das, arr } = this.getSpeed();
 
     if (this.keyRight.isDown) {
       if (this.rightDasCounter === 0) {
@@ -617,7 +668,7 @@ class Game extends Phaser.Scene {
   }
 
   handleShiftLeft() {
-    const { das, arr } = this.cache.json.get("speed");
+    const { das, arr } = this.getSpeed();
     if (this.keyLeft.isDown) {
       if (this.leftDasCounter === 0) {
         this.shiftLeft();
@@ -640,7 +691,7 @@ class Game extends Phaser.Scene {
   }
 
   handleLocking() {
-    const { lockDelay, lockMoveLimit } = this.cache.json.get("speed");
+    const { lockDelay, lockMoveLimit } = this.getSpeed();
 
     if (this.isLocking()) {
       this.lockDelayCounter++;
@@ -697,7 +748,7 @@ class Game extends Phaser.Scene {
       this.isHardDropping = false;
     }
 
-    const gravityJson = this.cache.json.get("gravity");
+    const gravityJson = this.getGravity();
     const maxGravityLevel = 15;
     const gravityKey =
       this.level > maxGravityLevel ? maxGravityLevel : this.level;
@@ -812,9 +863,7 @@ class Game extends Phaser.Scene {
   }
 
   cloneTetromino(sourceTetromino, rotationOffset = 0) {
-    const tetrominoes = this.cache.json.get("tetrominoes");
-    const tetrominoColors = this.cache.json.get("tetrominoColors");
-
+    const tetrominoes = this.getTetrominoes();
     const tetrominoName = sourceTetromino.name;
     const rotations = tetrominoes[tetrominoName];
 
@@ -831,13 +880,13 @@ class Game extends Phaser.Scene {
     const x = sourceTetromino.shape.getBounds().left;
     const y = sourceTetromino.shape.getBounds().top;
 
-    const tetrominoColor = tetrominoColors[tetrominoName];
-
+    const fillColor = sourceTetromino.shape.list[0].fillColor;
+    const strokeColor = sourceTetromino.shape.list[0].strokeColor;
     const clone = this.createTetromino(
       nextRotation,
       { x, y },
-      tetrominoColor,
-      colors.hexBlack
+      fillColor,
+      strokeColor
     );
 
     const tetromino = {
@@ -884,8 +933,7 @@ class Game extends Phaser.Scene {
       rotationOffset
     );
 
-    const wallkickData = this.cache.json.get("wallkick");
-    const tetrominoWallkickData = wallkickData[this.tetromino.name];
+    const tetrominoWallkickData = this.getWallkick(this.tetromino.name);
     const wallkickKey =
       this.tetromino.rotation + ":" + rotatedTetromino.rotation;
     const wallkickOffsets = tetrominoWallkickData[wallkickKey];
