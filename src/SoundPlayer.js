@@ -4,15 +4,15 @@ class SoundPlayer {
   }
 
   preload() {
-    this.game.load.audio("gameOver", "assets/gameOver.wav");
-    this.game.load.audio("hardDrop", "assets/hardDrop.wav");
-    this.game.load.audio("levelUp", "assets/levelUp.wav");
-    this.game.load.audio("lineClear", "assets/lineClear.wav");
-    this.game.load.audio("lock", "assets/lock.wav");
-    this.game.load.audio("rotate", "assets/rotate.wav");
-    this.game.load.audio("shift", "assets/shift.wav");
-    this.game.load.audio("softDrop", "assets/softDrop.wav");
-    this.game.load.audio("tetris", "assets/tetris.wav");
+    this.game.load.audio("gameOver", "assets/gameOver.mp3");
+    this.game.load.audio("hardDrop", "assets/hardDrop.mp3");
+    this.game.load.audio("levelUp", "assets/levelUp.mp3");
+    this.game.load.audio("lineClear", "assets/lineClear.mp3");
+    this.game.load.audio("lock", "assets/lock.mp3");
+    this.game.load.audio("rotate", "assets/rotate.mp3");
+    this.game.load.audio("shift", "assets/shift.mp3");
+    this.game.load.audio("softDrop", "assets/softDrop.mp3");
+    this.game.load.audio("tetris", "assets/tetris.mp3");
   }
 
   _play(soundName) {

@@ -66,9 +66,9 @@ All sound effects taken from https://mixkit.co/free-sound-effects/game/
 - [x] Fix spawn randomisation
 - [x] Hard drop - score
 - [ ] Sharp rendering
-- [ ] Sound effects
+- [x] Sound effects
   - [x] Rotate
-  - [bug] Shift left/right
+  - [x] Shift left/right
   - [x] start soft drop
   - [x] Lock
   - [x] Hard drop
