@@ -26,6 +26,10 @@ Spawn randomness follows Tetris guideline (7-bag system) - https://tetris.wiki/R
 
 Wall kick data and implementation taken from https://tetris.wiki/Super_Rotation_System
 
+## Sound Effects
+
+All sound effects taken from https://mixkit.co/free-sound-effects/game/
+
 ## To Do
 
 - [x] Tetromino JSON model
@@ -63,6 +67,15 @@ Wall kick data and implementation taken from https://tetris.wiki/Super_Rotation_
 - [x] Hard drop - score
 - [ ] Sharp rendering
 - [ ] Sound effects
+  - [x] Rotate
+  - [bug] Shift left/right
+  - [x] start soft drop
+  - [x] Lock
+  - [x] Hard drop
+  - [x] Line clear
+  - [x] Tetris
+  - [x] Game over
+  - [x] Level up
 - [ ] Music
 - [ ] Game over screen
 - [ ] Game over screen - retry

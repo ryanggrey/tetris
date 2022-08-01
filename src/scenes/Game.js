@@ -4,7 +4,6 @@ import NextTetrominoManager from "../NextTetrominoManager";
 
 const boardColumns = 10;
 const boardRows = 20;
-const gridLineWidth = 1;
 const lineClearAnimationDuration = 200;
 
 class Game extends Phaser.Scene {
@@ -22,6 +21,16 @@ class Game extends Phaser.Scene {
     this.load.json("tetrominoes", "assets/tetrominoes.json");
     this.load.json("wallkick", "assets/wallkick.json");
     this.load.json("score", "assets/score.json");
+
+    this.load.audio("gameOver", "assets/gameOver.wav");
+    this.load.audio("hardDrop", "assets/hardDrop.wav");
+    this.load.audio("levelUp", "assets/levelUp.wav");
+    this.load.audio("lineClear", "assets/lineClear.wav");
+    this.load.audio("lock", "assets/lock.wav");
+    this.load.audio("rotate", "assets/rotate.wav");
+    this.load.audio("shift", "assets/shift.wav");
+    this.load.audio("softDrop", "assets/softDrop.wav");
+    this.load.audio("tetris", "assets/tetris.wav");
   }
 
   getCacheKey(key) {
@@ -115,6 +124,7 @@ class Game extends Phaser.Scene {
     }
     this.levelValue.setText(this.level);
     this.pulse(this.levelValue);
+    this.levelUpSound.play();
   }
 
   setScore(score, isAnimated = true) {
@@ -133,16 +143,25 @@ class Game extends Phaser.Scene {
   }
 
   setTotalRowsCleared(totalRowsCleared) {
-    if (this.totalRowsCleared === totalRowsCleared) {
+    const oldTotalRowsCleared = this.totalRowsCleared;
+    const newTotalRowsCleared = totalRowsCleared;
+    if (oldTotalRowsCleared === newTotalRowsCleared) {
       return;
     }
-    this.totalRowsCleared = totalRowsCleared;
+    this.totalRowsCleared = newTotalRowsCleared;
 
     if (!this.linesValue) {
       return;
     }
     this.linesValue.setText(this.totalRowsCleared);
     this.pulse(this.linesValue);
+
+    const rowsCleared = newTotalRowsCleared - oldTotalRowsCleared;
+    if (rowsCleared < 4) {
+      this.lineClearSound.play();
+    } else {
+      this.tetrisSound.play();
+    }
   }
 
   reset() {
@@ -166,9 +185,22 @@ class Game extends Phaser.Scene {
     this.setupLockedRows();
   }
 
+  createSounds() {
+    this.gameOverSound = this.sound.add("gameOver");
+    this.hardDropSound = this.sound.add("hardDrop");
+    this.levelUpSound = this.sound.add("levelUp");
+    this.lineClearSound = this.sound.add("lineClear");
+    this.lockSound = this.sound.add("lock");
+    this.rotateSound = this.sound.add("rotate");
+    this.shiftSound = this.sound.add("shift");
+    this.softDropSound = this.sound.add("softDrop");
+    this.tetrisSound = this.sound.add("tetris");
+  }
+
   create(data) {
     this.reset();
 
+    this.createSounds();
     this.createDimensions();
     this.createControls();
     this.createBoard();
@@ -499,6 +531,7 @@ class Game extends Phaser.Scene {
 
   endGame() {
     this.gameOver = true;
+    this.gameOverSound.play();
   }
 
   incrementScoreFor(numberOfLinesCleared) {
@@ -641,6 +674,10 @@ class Game extends Phaser.Scene {
     this.tetromino = null;
     this.ghostTetromino.shape.destroy();
     this.ghostTetromino = null;
+
+    if (!this.isHardDropping) {
+      this.lockSound.play();
+    }
   }
 
   handleShiftRight() {
@@ -738,6 +775,7 @@ class Game extends Phaser.Scene {
       const { hardDropPerRow } = this.cache.json.get("score");
       const newScore = this.score + hardDropPerRow * numberOfRowsDropped;
       this.setScore(newScore, false);
+      this.hardDropSound.play();
 
       this.lockTetromino();
       this.spawnTetromino();
@@ -756,6 +794,15 @@ class Game extends Phaser.Scene {
     const isSoftDrop = this.keyDown.isDown;
     if (isSoftDrop) {
       gravity = gravityJson["softdrop"];
+      if (!this.isSoftDropping) {
+        this.softDropSound.play();
+        this.isSoftDropping = true;
+      }
+    }
+
+    const isSoftDropFinished = this.keyDown.isUp;
+    if (isSoftDropFinished) {
+      this.isSoftDropping = false;
     }
 
     this.yDelta += gravity * this.minoHeight;
@@ -906,6 +953,7 @@ class Game extends Phaser.Scene {
       this.tetromino.shape.x -= this.minoWidth;
       this.updateGhostTetromino();
       this.updateLockCountersForMove();
+      this.shiftSound.play();
     }
     possibleTetromino.shape.destroy();
   }
@@ -918,6 +966,7 @@ class Game extends Phaser.Scene {
       this.tetromino.shape.x += this.minoWidth;
       this.updateGhostTetromino();
       this.updateLockCountersForMove();
+      this.shiftSound.play();
     }
     possibleTetromino.shape.destroy();
   }
@@ -948,6 +997,7 @@ class Game extends Phaser.Scene {
         this.tetromino.shape.x = shiftedTetromino.shape.x;
         this.tetromino.shape.y = shiftedTetromino.shape.y;
         this.updateGhostTetromino();
+        this.rotateSound.play();
         break;
       } else {
         shiftedTetromino.shape.destroy();
