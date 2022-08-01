@@ -1,6 +1,8 @@
 import Phaser from "phaser";
 import levelCalculator from "../levelCalculator";
 import NextTetrominoManager from "../NextTetrominoManager";
+import SoundPlayer from "../SoundPlayer";
+import AssetLoader from "../AssetLoader";
 
 const boardColumns = 10;
 const boardRows = 20;
@@ -10,78 +12,19 @@ class Game extends Phaser.Scene {
   constructor() {
     super({ key: "GameScene" });
     this.nextTetrominoManager = new NextTetrominoManager();
+    this.soundPlayer = new SoundPlayer(this);
+    this.assetLoader = new AssetLoader(this);
   }
 
   init(data) {}
 
   preload() {
-    this.load.json("gravity", "assets/gravity.json");
-    this.load.json("speed", "assets/speed.json");
-    this.load.json("colors", "assets/colors.json");
-    this.load.json("tetrominoes", "assets/tetrominoes.json");
-    this.load.json("wallkick", "assets/wallkick.json");
-    this.load.json("score", "assets/score.json");
-
-    this.load.audio("gameOver", "assets/gameOver.wav");
-    this.load.audio("hardDrop", "assets/hardDrop.wav");
-    this.load.audio("levelUp", "assets/levelUp.wav");
-    this.load.audio("lineClear", "assets/lineClear.wav");
-    this.load.audio("lock", "assets/lock.wav");
-    this.load.audio("rotate", "assets/rotate.wav");
-    this.load.audio("shift", "assets/shift.wav");
-    this.load.audio("softDrop", "assets/softDrop.wav");
-    this.load.audio("tetris", "assets/tetris.wav");
-  }
-
-  getCacheKey(key) {
-    return this.cache.json.get(key);
-  }
-
-  getGravity() {
-    return this.getCacheKey("gravity");
-  }
-
-  getSpeed() {
-    return this.getCacheKey("speed");
-  }
-
-  getColors() {
-    return this.getCacheKey("colors");
+    this.assetLoader.preload();
+    this.soundPlayer.preload();
   }
 
   getRectangleColor(rawColor) {
     return rawColor.replace("#", "0x");
-  }
-
-  getTetrominoColor(tetrominoName) {
-    return this.getColors()[tetrominoName];
-  }
-
-  getTetrominoBorderColor(tetrominoName) {
-    const borderName = `${tetrominoName}Border`;
-    return this.getColors()[borderName];
-  }
-
-  getTetrominoes() {
-    return this.getCacheKey("tetrominoes");
-  }
-
-  getTetromino(tetrominoName) {
-    return this.getTetrominoes()[tetrominoName];
-  }
-
-  getTetrominoJSON(tetrominoName, rotationIndex = 0) {
-    const tetrominoRotations = this.getTetromino(tetrominoName);
-    const tetrominoJSON = tetrominoRotations[rotationIndex];
-    return tetrominoJSON;
-  }
-
-  getWallkick(tetrominoName) {
-    return this.getCacheKey("wallkick")[tetrominoName];
-  }
-
-  getScore(scoreName) {
-    return this.getCacheKey("score")[scoreName];
   }
 
   setupLockedRows() {
@@ -124,7 +67,7 @@ class Game extends Phaser.Scene {
     }
     this.levelValue.setText(this.level);
     this.pulse(this.levelValue);
-    this.levelUpSound.play();
+    this.soundPlayer.levelUp();
   }
 
   setScore(score, isAnimated = true) {
@@ -158,9 +101,9 @@ class Game extends Phaser.Scene {
 
     const rowsCleared = newTotalRowsCleared - oldTotalRowsCleared;
     if (rowsCleared < 4) {
-      this.lineClearSound.play();
+      this.soundPlayer.lineClear();
     } else {
-      this.tetrisSound.play();
+      this.soundPlayer.tetris();
     }
   }
 
@@ -185,22 +128,9 @@ class Game extends Phaser.Scene {
     this.setupLockedRows();
   }
 
-  createSounds() {
-    this.gameOverSound = this.sound.add("gameOver");
-    this.hardDropSound = this.sound.add("hardDrop");
-    this.levelUpSound = this.sound.add("levelUp");
-    this.lineClearSound = this.sound.add("lineClear");
-    this.lockSound = this.sound.add("lock");
-    this.rotateSound = this.sound.add("rotate");
-    this.shiftSound = this.sound.add("shift");
-    this.softDropSound = this.sound.add("softDrop");
-    this.tetrisSound = this.sound.add("tetris");
-  }
-
   create(data) {
     this.reset();
 
-    this.createSounds();
     this.createDimensions();
     this.createControls();
     this.createBoard();
@@ -241,7 +171,7 @@ class Game extends Phaser.Scene {
     const scoreValueY = levelKeyY - groupPadding - fieldHeight;
     const scoreKeyY = scoreValueY - interPadding - fieldHeight;
 
-    const color = this.getColors().text;
+    const color = this.assetLoader.getColors().text;
     const textStyle = {
       color,
       width: fieldWidth,
@@ -290,7 +220,7 @@ class Game extends Phaser.Scene {
     const nextKeyX = this.nextSectionDimensions.x + groupPadding;
     const nextTetrominoX = nextKeyX;
 
-    const color = this.getColors().text;
+    const color = this.assetLoader.getColors().text;
     const textStyle = {
       color,
       width: fieldWidth,
@@ -355,7 +285,7 @@ class Game extends Phaser.Scene {
     };
 
     const createNextTetromino = (tetrominoName, anchorCoord) => {
-      const tetrominoJSON = this.getTetrominoJSON(tetrominoName);
+      const tetrominoJSON = this.assetLoader.getTetrominoJSON(tetrominoName);
       const tetrominoCoords = getCenteredCoords(tetrominoJSON, anchorCoord);
       const tetromino = this.spawnTetrominoNamed(tetrominoName, {
         x: tetrominoCoords.x,
@@ -403,7 +333,8 @@ class Game extends Phaser.Scene {
 
     this.board = this.add.rectangle(x, y, boardWidth, boardHeight);
     this.board.setOrigin(0);
-    const color = this.getRectangleColor(this.getColors().gridLine);
+    const gridLineColor = this.assetLoader.getColors().gridLine;
+    const color = this.getRectangleColor(gridLineColor);
     this.board.setStrokeStyle(1, color);
   }
 
@@ -419,9 +350,10 @@ class Game extends Phaser.Scene {
   }
 
   spawnTetrominoNamed(tetrominoName, coord) {
-    const tetrominoJSON = this.getTetrominoJSON(tetrominoName);
-    const tetrominoColor = this.getTetrominoColor(tetrominoName);
-    const tetrominoBorderColor = this.getTetrominoBorderColor(tetrominoName);
+    const tetrominoJSON = this.assetLoader.getTetrominoJSON(tetrominoName);
+    const tetrominoColor = this.assetLoader.getTetrominoColor(tetrominoName);
+    const tetrominoBorderColor =
+      this.assetLoader.getTetrominoBorderColor(tetrominoName);
     const rotationIndex = 0;
 
     const randomTetromino = this.createTetromino(
@@ -531,11 +463,13 @@ class Game extends Phaser.Scene {
 
   endGame() {
     this.gameOver = true;
-    this.gameOverSound.play();
+    this.soundPlayer.gameOver();
   }
 
   incrementScoreFor(numberOfLinesCleared) {
-    const scorePerLevel = this.getScore(`${numberOfLinesCleared}`);
+    const scorePerLevel = this.assetLoader.getScoreNamed(
+      `${numberOfLinesCleared}`
+    );
     if (!scorePerLevel) {
       return;
     }
@@ -676,12 +610,12 @@ class Game extends Phaser.Scene {
     this.ghostTetromino = null;
 
     if (!this.isHardDropping) {
-      this.lockSound.play();
+      this.soundPlayer.lock();
     }
   }
 
   handleShiftRight() {
-    const { das, arr } = this.getSpeed();
+    const { das, arr } = this.assetLoader.getSpeed();
 
     if (this.keyRight.isDown) {
       if (this.rightDasCounter === 0) {
@@ -705,7 +639,7 @@ class Game extends Phaser.Scene {
   }
 
   handleShiftLeft() {
-    const { das, arr } = this.getSpeed();
+    const { das, arr } = this.assetLoader.getSpeed();
     if (this.keyLeft.isDown) {
       if (this.leftDasCounter === 0) {
         this.shiftLeft();
@@ -728,7 +662,7 @@ class Game extends Phaser.Scene {
   }
 
   handleLocking() {
-    const { lockDelay, lockMoveLimit } = this.getSpeed();
+    const { lockDelay, lockMoveLimit } = this.assetLoader.getSpeed();
 
     if (this.isLocking()) {
       this.lockDelayCounter++;
@@ -772,10 +706,10 @@ class Game extends Phaser.Scene {
       this.isHardDropping = true;
       this.yDelta = 0;
       const numberOfRowsDropped = this.shiftToBottom(this.tetromino, true);
-      const { hardDropPerRow } = this.cache.json.get("score");
+      const { hardDropPerRow } = this.assetLoader.getScore();
       const newScore = this.score + hardDropPerRow * numberOfRowsDropped;
       this.setScore(newScore, false);
-      this.hardDropSound.play();
+      this.soundPlayer.hardDrop();
 
       this.lockTetromino();
       this.spawnTetromino();
@@ -786,7 +720,7 @@ class Game extends Phaser.Scene {
       this.isHardDropping = false;
     }
 
-    const gravityJson = this.getGravity();
+    const gravityJson = this.assetLoader.getGravity();
     const maxGravityLevel = 15;
     const gravityKey =
       this.level > maxGravityLevel ? maxGravityLevel : this.level;
@@ -795,7 +729,7 @@ class Game extends Phaser.Scene {
     if (isSoftDrop) {
       gravity = gravityJson["softdrop"];
       if (!this.isSoftDropping) {
-        this.softDropSound.play();
+        this.soundPlayer.softDrop();
         this.isSoftDropping = true;
       }
     }
@@ -816,7 +750,7 @@ class Game extends Phaser.Scene {
       this.yDelta = remainder;
 
       if (isSoftDrop) {
-        const { softDropPerRow } = this.cache.json.get("score");
+        const { softDropPerRow } = this.assetLoader.getScore();
         const newScore = this.score + softDropPerRow;
         this.setScore(newScore, false);
       }
@@ -910,7 +844,7 @@ class Game extends Phaser.Scene {
   }
 
   cloneTetromino(sourceTetromino, rotationOffset = 0) {
-    const tetrominoes = this.getTetrominoes();
+    const tetrominoes = this.assetLoader.getTetrominoes();
     const tetrominoName = sourceTetromino.name;
     const rotations = tetrominoes[tetrominoName];
 
@@ -953,7 +887,7 @@ class Game extends Phaser.Scene {
       this.tetromino.shape.x -= this.minoWidth;
       this.updateGhostTetromino();
       this.updateLockCountersForMove();
-      this.shiftSound.play();
+      this.soundPlayer.shift();
     }
     possibleTetromino.shape.destroy();
   }
@@ -966,7 +900,7 @@ class Game extends Phaser.Scene {
       this.tetromino.shape.x += this.minoWidth;
       this.updateGhostTetromino();
       this.updateLockCountersForMove();
-      this.shiftSound.play();
+      this.soundPlayer.shift();
     }
     possibleTetromino.shape.destroy();
   }
@@ -982,7 +916,9 @@ class Game extends Phaser.Scene {
       rotationOffset
     );
 
-    const tetrominoWallkickData = this.getWallkick(this.tetromino.name);
+    const tetrominoWallkickData = this.assetLoader.getWallkick(
+      this.tetromino.name
+    );
     const wallkickKey =
       this.tetromino.rotation + ":" + rotatedTetromino.rotation;
     const wallkickOffsets = tetrominoWallkickData[wallkickKey];
@@ -997,7 +933,7 @@ class Game extends Phaser.Scene {
         this.tetromino.shape.x = shiftedTetromino.shape.x;
         this.tetromino.shape.y = shiftedTetromino.shape.y;
         this.updateGhostTetromino();
-        this.rotateSound.play();
+        this.soundPlayer.rotate();
         break;
       } else {
         shiftedTetromino.shape.destroy();
