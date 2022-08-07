@@ -126,6 +126,10 @@ class Game extends Phaser.Scene {
     this.lockMoveCounter = 0;
 
     this.setupLockedRows();
+
+    // reset mobile controls
+    this.isTouchDown = false;
+    this.touchDownCounter = 0;
   }
 
   create(data) {
@@ -617,7 +621,7 @@ class Game extends Phaser.Scene {
   handleShiftRight() {
     const { das, arr } = this.assetLoader.getSpeed();
 
-    if (this.keyRight.isDown) {
+    if (this.isRightHeld()) {
       if (this.rightDasCounter === 0) {
         this.shiftRight();
       }
@@ -632,7 +636,7 @@ class Game extends Phaser.Scene {
       this.rightDasCounter++;
     }
 
-    if (this.keyRight.isUp) {
+    if (this.isRightReleased()) {
       this.rightDasCounter = 0;
       this.rightArrCounter = 0;
     }
@@ -640,7 +644,7 @@ class Game extends Phaser.Scene {
 
   handleShiftLeft() {
     const { das, arr } = this.assetLoader.getSpeed();
-    if (this.keyLeft.isDown) {
+    if (this.isLeftHeld()) {
       if (this.leftDasCounter === 0) {
         this.shiftLeft();
       }
@@ -655,7 +659,7 @@ class Game extends Phaser.Scene {
       this.leftDasCounter++;
     }
 
-    if (this.keyLeft.isUp) {
+    if (this.isLeftReleased()) {
       this.leftDasCounter = 0;
       this.leftArrCounter = 0;
     }
@@ -693,11 +697,107 @@ class Game extends Phaser.Scene {
     // assuming 60fps
 
     this.handleClearingRows();
+    this.handleMobileControls();
     this.handleShiftRight();
     this.handleShiftLeft();
     this.handleRotateRight();
     this.handleLocking();
     this.handleGravity();
+  }
+
+  isLeftHeld() {
+    return this.keyLeft.isDown || this.isDraggingLeft;
+  }
+
+  isLeftReleased() {
+    return this.keyLeft.isUp && !this.isDraggingLeft;
+  }
+
+  isRightHeld() {
+    return this.keyRight.isDown || this.isDraggingRight;
+  }
+
+  isRightReleased() {
+    return this.keyRight.isUp && !this.isDraggingRight;
+  }
+
+  isUpHeld() {
+    return this.keyUp.isDown || this.isDraggingUp;
+  }
+
+  isUpReleased() {
+    return this.keyUp.isUp && !this.isDraggingUp;
+  }
+
+  isDownHeld() {
+    return this.keyDown.isDown || this.isDraggingDown;
+  }
+
+  isDownReleased() {
+    return this.keyDown.isUp && !this.isDraggingDown;
+  }
+
+  resetDraggingFlags() {
+    this.isDraggingLeft = false;
+    this.isDraggingRight = false;
+    this.isDraggingDown = false;
+    this.isDraggingUp = false;
+  }
+
+  handleDrag() {
+    if (this.lastPointerX === null) {
+      this.lastPointerX = this.input.activePointer.x;
+      this.lastPointerY = this.input.activePointer.y;
+      return;
+    }
+
+    const deltaX = this.lastPointerX - this.input.activePointer.x;
+    const deltaY = this.lastPointerY - this.input.activePointer.y;
+    const xSensitivity = this.minoWidth;
+    const ySensitivity = this.minoHeight;
+    const isXTriggered = Math.abs(deltaX) > xSensitivity;
+    const isYTriggered = Math.abs(deltaY) > ySensitivity;
+
+    if (this.isTouchDown) {
+      if (Math.abs(deltaX) > Math.abs(deltaY)) {
+        if (isXTriggered) {
+          if (deltaX > 0) {
+            this.isDraggingLeft = true;
+          } else {
+            this.isDraggingRight = true;
+          }
+          this.lastPointerX = this.input.activePointer.x;
+        }
+      } else {
+        if (isYTriggered) {
+          if (deltaY > 0) {
+            this.isDraggingDown = true;
+          } else {
+            this.isDraggingUp = true;
+          }
+          this.lastPointerY = this.input.activePointer.y;
+        }
+      }
+    }
+  }
+
+  handleMobileControls() {
+    this.resetDraggingFlags();
+
+    if (!this.input.activePointer.isDown) {
+      this.isTouchDown = false;
+      this.touchDownCounter = 0;
+      this.lastPointerX = null;
+      this.lastPointerY = null;
+      console.log("up");
+      return;
+    } else if (this.input.activePointer.isDown) {
+      this.isTouchDown = true;
+      this.touchDownCounter++;
+      console.log("down");
+    }
+
+    this.handleDrag();
   }
 
   handleGravity() {

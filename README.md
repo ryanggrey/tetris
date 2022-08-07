@@ -89,6 +89,7 @@ All sound effects taken from https://mixkit.co/free-sound-effects/game/
 - [ ] Hold tetromino
 - [ ] Switch held tetromino
 - [ ] Don't assume 60fps
-- [ ] Mobile controls
+- [in-progress] Mobile controls
+- [ ] Mobile layout/rendering
 - [ ] Unit tests
 - [ ] Web hosting
