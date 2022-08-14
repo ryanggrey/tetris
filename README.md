@@ -91,5 +91,5 @@ All sound effects taken from https://mixkit.co/free-sound-effects/game/
 - [ ] Don't assume 60fps
 - [in-progress] Mobile controls
 - [ ] Mobile layout/rendering
-- [ ] Unit tests
-- [ ] Web hosting
+- [x] Unit tests
+- [x] Web hosting
