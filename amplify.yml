@@ -1,6 +1,12 @@
 version: 1
 frontend:
   phases:
+    preTest:
+      commands:
+        - npm ci
+    test: 
+      commands:
+        - npm test
     preBuild:
       commands:
         - npm ci
