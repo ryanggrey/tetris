@@ -145,21 +145,46 @@ class Game extends Phaser.Scene {
   }
 
   createDimensions() {
-    const sectionWidth = 250;
+    const scoreSectionColumns = 5;
+    const boardSectionColumns = boardColumns;
+    const nextSectionColumns = 5;
+    const rows = 1 + 2 + boardRows + 2 + 1;
+    const gameWidth = this.scale.baseSize.width;
+    const gameHeight = this.scale.baseSize.height;
+    const isWidthGreater = gameWidth > gameHeight;
+    if (isWidthGreater) {
+      // then use height to calculate minoWidth and minoHeight
+      this.minoWidth = Math.floor(gameHeight / rows);
+      this.minoHeight = this.minoWidth;
+    } else {
+      // then use width to calculate minoWidth and minoHeight
+      this.minoWidth = Math.floor(
+        gameWidth /
+          (scoreSectionColumns + boardSectionColumns + nextSectionColumns)
+      );
+      this.minoHeight = this.minoWidth;
+    }
+
+    console.log(this.minoWidth, this.minoHeight);
+
+    const scoreSectionWidth = scoreSectionColumns * this.minoWidth;
+    const boardSectionWidth = boardSectionColumns * this.minoWidth;
+    const nextSectionWidth = nextSectionColumns * this.minoWidth;
+
     this.scoreSectionDimensions = {
-      x: 0,
-      width: sectionWidth,
+      x: gameWidth / 2 - boardSectionWidth / 2 - scoreSectionWidth,
+      width: scoreSectionWidth,
     };
     this.boardSectionDimensions = {
-      x: 1 * sectionWidth,
-      width: sectionWidth,
+      x: this.scoreSectionDimensions.x + this.scoreSectionDimensions.width,
+      width: boardSectionWidth,
     };
     this.nextSectionDimensions = {
-      x: 2 * sectionWidth,
-      width: sectionWidth,
+      x: this.boardSectionDimensions.x + this.boardSectionDimensions.width,
+      width: nextSectionWidth,
     };
-    this.minoWidth = this.boardSectionDimensions.width / boardColumns;
-    this.minoHeight = this.minoWidth;
+
+    this.fontSize = this.minoHeight * 0.8;
   }
 
   createScoreSection() {
@@ -181,6 +206,7 @@ class Game extends Phaser.Scene {
       width: fieldWidth,
       align: "center",
       fixedWidth: fieldWidth,
+      fontSize: this.fontSize,
     };
     const x = this.boardSectionDimensions.x - groupPadding - fieldWidth;
     this.scoreKey = this.add.text(x, scoreKeyY, "Score", textStyle);
@@ -230,6 +256,7 @@ class Game extends Phaser.Scene {
       width: fieldWidth,
       align: "center",
       fixedWidth: fieldWidth,
+      fontSize: this.fontSize,
     };
     this.nextKey = this.add.text(nextKeyX, nextKeyY, "Next", textStyle);
 
@@ -789,12 +816,10 @@ class Game extends Phaser.Scene {
       this.touchDownCounter = 0;
       this.lastPointerX = null;
       this.lastPointerY = null;
-      console.log("up");
       return;
     } else if (this.input.activePointer.isDown) {
       this.isTouchDown = true;
       this.touchDownCounter++;
-      console.log("down");
     }
 
     this.handleDrag();
