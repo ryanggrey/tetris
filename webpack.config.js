@@ -39,7 +39,7 @@ module.exports = (env, argv) => ({
       CANVAS_RENDERER: true,
     }),
     new CleanWebpackPlugin(),
-    new CopyWebpackPlugin([{ from: "assets", to: "assets" }]),
+    new CopyWebpackPlugin({ patterns: [{ from: "assets", to: "assets" }] }),
     new HtmlWebPackPlugin({
       template: "./src/index.html",
       filename: "./index.html",
