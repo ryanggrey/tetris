@@ -93,3 +93,5 @@ All sound effects taken from https://mixkit.co/free-sound-effects/game/
 - [x] Mobile layout/rendering
 - [x] Unit tests
 - [x] Web hosting
+- [x] Pause - Desktop
+- [ ] Pause - Mobile

@@ -37,6 +37,12 @@ class AssetLoader {
     return this.getColors()[borderName];
   }
 
+  getMenuColor(name) {
+    const stringColor = this.getColors()[name];
+    const numberColor = parseInt(stringColor.replace(/^#/, ""), 16);
+    return numberColor;
+  }
+
   getTetrominoes() {
     return this._getCacheKey("tetrominoes");
   }

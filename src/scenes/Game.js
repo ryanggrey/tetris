@@ -353,6 +353,9 @@ class Game extends Phaser.Scene {
     this.keySpace = this.input.keyboard.addKey(
       Phaser.Input.Keyboard.KeyCodes.SPACE
     );
+    this.keyEsc = this.input.keyboard.addKey(
+      Phaser.Input.Keyboard.KeyCodes.ESC
+    );
   }
 
   createBoard() {
@@ -716,13 +719,132 @@ class Game extends Phaser.Scene {
     }
   }
 
+  openMenu() {
+    const menuWidth = this.game.config.width * 0.5;
+    const menuHeight = this.game.config.height * 0.5;
+    const menuAnimation = {
+      duration: 150,
+      orientation: undefined,
+      ease: "Cubic",
+    };
+
+    const scene = this;
+    this.menu = this.rexUI.add.menu({
+      // x: this.game.config.width / 2 - menuWidth / 2,
+      // y: this.game.config.height / 2 - menuHeight / 2,
+      // width: menuWidth,
+      // height: menuHeight,
+      anchor: {
+        centerX: "center",
+        centerY: "center",
+      },
+
+      popup: true,
+      orientation: "y",
+      // subMenuSide: undefined,
+      items: [{ name: "Paused" }, { name: "Resume" }],
+
+      createBackgroundCallback: (items) => {
+        const scene = items.scene;
+        return scene.rexUI.add.roundRectangle(
+          0,
+          0,
+          2,
+          2,
+          0,
+          scene.assetLoader.getMenuColor("menuBackground")
+        );
+      },
+      createBackgroundCallbackScope: undefined,
+
+      createButtonCallback: (item, i) => {
+        return scene.rexUI.add.label({
+          background: scene.rexUI.add.roundRectangle(
+            0,
+            0,
+            2,
+            2,
+            0,
+            scene.assetLoader.getMenuColor("menuBackground")
+          ),
+          text: scene.add.text(0, 0, item.name, {
+            fontSize: i === 0 ? scene.fontSize + 15 : scene.fontSize,
+            color: scene.assetLoader.getColors()["menuText"],
+            align: "center",
+            width: menuWidth,
+            fixedWidth: menuWidth,
+          }),
+          space: 20,
+        });
+      },
+      createButtonCallbackScope: undefined,
+
+      easeIn: menuAnimation,
+      easeOut: menuAnimation,
+      name: "Menu",
+      enableLayer: true,
+      pointerDownOutsideCollapsing: false,
+    });
+
+    const handlButtonEvent = (button, eventName) => {
+      if (button.text === "Paused") {
+        return;
+      }
+      const text = button.getElement("text");
+      const colorKey = eventName === "over" ? "menuTextHover" : "menuText";
+      const color = this.assetLoader.getColors()[colorKey];
+      const textStyle = {
+        ...text.style,
+        color,
+      };
+      text.setStyle(textStyle);
+    };
+
+    this.menu
+      .on("button.click", (button) => {
+        if (button.text === "Resume") {
+          this.closeMenu();
+        }
+      })
+      .on("button.over", (button) => handlButtonEvent(button, "over"))
+      .on("button.out", (button) => handlButtonEvent(button, "out"));
+  }
+
+  closeMenu() {
+    if (this.menu) {
+      this.menu.collapse();
+      this.menu = null;
+    }
+    this.isPaused = false;
+  }
+
+  handlePause() {
+    if (this.keyEsc.isDown && !this.isHandlingPause) {
+      this.isHandlingPause = true;
+      this.isPaused = !this.isPaused;
+      if (this.isPaused) {
+        this.openMenu();
+      } else {
+        this.closeMenu();
+      }
+    }
+
+    if (this.keyEsc.isUp) {
+      this.isHandlingPause = false;
+    }
+  }
+
   update(time, delta) {
     if (this.gameOver) {
       return;
     }
 
-    // assuming 60fps
+    this.handlePause();
+    if (this.isPaused) {
+      return;
+    }
 
+    // assuming 60fps
     this.handleClearingRows();
     this.handleMobileControls();
     this.handleShiftRight();

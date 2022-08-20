@@ -15,5 +15,8 @@
   "zBorder": "#6E120B",
   "background": "#D6EEFF",
   "text": "#2A2D43",
-  "gridLine": "#2A2D43"
+  "gridLine": "#2A2D43",
+  "menuBackground": "#6CECEE",
+  "menuText": "#2A2D43",
+  "menuTextHover": "#FFFFFF"
 }
