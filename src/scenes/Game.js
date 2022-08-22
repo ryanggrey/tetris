@@ -3,10 +3,18 @@ import levelCalculator from "../levelCalculator";
 import NextTetrominoManager from "../NextTetrominoManager";
 import SoundPlayer from "../SoundPlayer";
 import AssetLoader from "../AssetLoader";
+import isMobile from "is-mobile";
 
 const boardColumns = 10;
 const boardRows = 20;
 const lineClearAnimationDuration = 200;
+const groupPadding = 10;
+const buttonNames = {
+  playPause: "play/pause",
+};
+const menuNames = {
+  resume: "Resume - Esc",
+};
 
 class Game extends Phaser.Scene {
   constructor() {
@@ -139,6 +147,7 @@ class Game extends Phaser.Scene {
     this.createControls();
     this.createBoard();
     this.createScoreSection();
+    this.createPausePlayButton();
     this.updateNextSection();
     this.spawnTetromino();
     this.gameOver = false;
@@ -188,7 +197,6 @@ class Game extends Phaser.Scene {
   }
 
   createScoreSection() {
-    const groupPadding = 10;
     const interPadding = 5;
     const fieldHeight = this.minoHeight;
     const fieldWidth = this.minoWidth * 3;
@@ -240,7 +248,6 @@ class Game extends Phaser.Scene {
       this.nextTetromino3.shape.destroy();
     }
 
-    const groupPadding = 10;
     const interPadding = this.minoHeight / 2;
     const fieldHeight = this.minoHeight * 2;
     const fieldWidth = this.minoWidth * 4;
@@ -337,6 +344,48 @@ class Game extends Phaser.Scene {
       x: nextTetrominoX,
       y: nextTetrominoY3,
     });
+  }
+
+  setupGlobalClickHandler() {
+    const game = this;
+    const handleButtonClick = (_, gameObject) => {
+      if (gameObject.name === buttonNames.playPause) {
+        game.pauseOrPlay();
+      }
+    };
+    this.input.on("gameobjectdown", handleButtonClick);
+  }
+
+  createPausePlayButton() {
+    this.setupGlobalClickHandler();
+    this.play();
+  }
+
+  setupPausePlayButton(assetName) {
+    if (!isMobile()) {
+      // then we don't need a pause button
+      return;
+    }
+
+    const buttonWidth = this.minoWidth;
+    const buttonHeight = this.minoHeight;
+    const buttonX =
+      this.nextSectionDimensions.x +
+      this.nextSectionDimensions.width / 2 -
+      buttonWidth / 2;
+    const boardBottom = this.board.getBounds().bottom;
+    const buttonY = boardBottom - groupPadding - buttonHeight;
+
+    const button = this.add.image(buttonX, buttonY, assetName);
+    button.name = buttonNames.playPause;
+    button.displayWidth = buttonWidth;
+    button.displayHeight = buttonHeight;
+
+    button.visible = true;
+    button.setInteractive();
+    button.setActive(true);
+
+    return button;
   }
 
   createControls() {
@@ -730,10 +779,6 @@ class Game extends Phaser.Scene {
 
     const scene = this;
     this.menu = this.rexUI.add.menu({
-      // x: this.game.config.width / 2 - menuWidth / 2,
-      // y: this.game.config.height / 2 - menuHeight / 2,
-      // width: menuWidth,
-      // height: menuHeight,
       anchor: {
         centerX: "center",
         centerY: "center",
@@ -741,8 +786,7 @@ class Game extends Phaser.Scene {
 
       popup: true,
       orientation: "y",
-      // subMenuSide: undefined,
-      items: [{ name: "Paused" }, { name: "Resume" }],
+      items: [{ name: "Paused" }, { name: menuNames.resume }],
 
       createBackgroundCallback: (items) => {
         const scene = items.scene;
@@ -800,12 +844,14 @@ class Game extends Phaser.Scene {
       text.setStyle(textStyle);
     };
 
+    const handleButtonClick = (button) => {
+      if (button.text === menuNames.resume) {
+        button.scene.pauseOrPlay();
+      }
+    };
+
     this.menu
-      .on("button.click", (button) => {
-        if (button.text === "Resume") {
-          this.closeMenu();
-        }
-      })
+      .on("button.click", handleButtonClick)
       .on("button.over", (button) => handlButtonEvent(button, "over"))
       .on("button.out", (button) => handlButtonEvent(button, "out"));
   }
@@ -815,18 +861,50 @@ class Game extends Phaser.Scene {
       this.menu.collapse();
       this.menu = null;
     }
-    this.isPaused = false;
   }
 
-  handlePause() {
+  pauseOrPlay() {
+    this.isPaused = !this.isPaused;
+
+    if (this.isPaused) {
+      this.pause();
+    } else {
+      this.play();
+    }
+  }
+
+  play() {
+    this.closeMenu();
+    this.showPauseButton();
+  }
+
+  pause() {
+    this.openMenu();
+    this.showPlayButton();
+  }
+
+  removePausePlayButton() {
+    if (this.pausePlayButton) {
+      this.pausePlayButton.removeInteractive();
+      this.pausePlayButton.removeAllListeners();
+      this.pausePlayButton.destroy();
+    }
+  }
+
+  showPlayButton() {
+    this.removePausePlayButton();
+    this.pausePlayButton = this.setupPausePlayButton("play");
+  }
+
+  showPauseButton() {
+    this.removePausePlayButton();
+    this.pausePlayButton = this.setupPausePlayButton("pause");
+  }
+
+  handleEscKey() {
     if (this.keyEsc.isDown && !this.isHandlingPause) {
       this.isHandlingPause = true;
-      this.isPaused = !this.isPaused;
-      if (this.isPaused) {
-        this.openMenu();
-      } else {
-        this.closeMenu();
-      }
+      this.pauseOrPlay();
     }
 
     if (this.keyEsc.isUp) {
@@ -839,7 +917,7 @@ class Game extends Phaser.Scene {
       return;
     }
 
-    this.handlePause();
+    this.handleEscKey();
     if (this.isPaused) {
       return;
     }
