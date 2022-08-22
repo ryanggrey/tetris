@@ -4,6 +4,7 @@ import NextTetrominoManager from "../NextTetrominoManager";
 import SoundPlayer from "../SoundPlayer";
 import AssetLoader from "../AssetLoader";
 import isMobile from "is-mobile";
+import pulse from "../tweener";
 
 const boardColumns = 10;
 const boardRows = 20;
@@ -39,27 +40,6 @@ class Game extends Phaser.Scene {
     }
   }
 
-  pulse(gameObject) {
-    // pulse from centre
-    gameObject.setOrigin(0.5);
-    gameObject.x = gameObject.x + gameObject.width / 2;
-    gameObject.y = gameObject.y + gameObject.height / 2;
-
-    this.tweens.add({
-      targets: gameObject,
-      scale: 2,
-      duration: 100,
-      yoyo: true,
-      ease: Phaser.Math.Easing.Sine.InOut,
-      onComplete: () => {
-        // reset origin
-        gameObject.setOrigin(0);
-        gameObject.x = gameObject.x - gameObject.width / 2;
-        gameObject.y = gameObject.y - gameObject.height / 2;
-      },
-    });
-  }
-
   setLevel(level) {
     if (this.level === level) {
       return;
@@ -70,7 +50,7 @@ class Game extends Phaser.Scene {
       return;
     }
     this.levelValue.setText(this.level);
-    this.pulse(this.levelValue);
+    pulse(this.levelValue, this);
     this.soundPlayer.levelUp();
   }
 
@@ -85,7 +65,7 @@ class Game extends Phaser.Scene {
     }
     this.scoreValue.setText(this.score);
     if (isAnimated) {
-      this.pulse(this.scoreValue);
+      pulse(this.scoreValue, this);
     }
   }
 
@@ -101,7 +81,7 @@ class Game extends Phaser.Scene {
       return;
     }
     this.linesValue.setText(this.totalRowsCleared);
-    this.pulse(this.linesValue);
+    pulse(this.linesValue, this);
 
     const rowsCleared = newTotalRowsCleared - oldTotalRowsCleared;
     if (rowsCleared < 4) {
