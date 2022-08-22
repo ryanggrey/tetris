@@ -607,7 +607,6 @@ class Game extends Phaser.Scene {
             },
           });
         }
-        this.updateGhostTetromino();
       }
     }
 
