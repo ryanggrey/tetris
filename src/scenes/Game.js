@@ -579,17 +579,6 @@ class Game extends Phaser.Scene {
           animationDelay,
           ease
         );
-        for (const ghostMino of this.ghostTetromino.shape.list) {
-          const scopedYDelta = yDelta;
-          const newY = ghostMino.y + scopedYDelta;
-          this.tweens.add({
-            targets: ghostMino,
-            y: newY,
-            delay: animationDelay(ghostMino),
-            duration: lineClearAnimationDuration,
-            ease,
-          });
-        }
 
         this.lockedRows[rowIndex + indexDelta] = this.lockedRows[rowIndex];
         this.lockedRows[rowIndex] = [];
