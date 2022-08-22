@@ -31,10 +31,6 @@ class Game extends Phaser.Scene {
     this.soundPlayer.preload();
   }
 
-  getRectangleColor(rawColor) {
-    return rawColor.replace("#", "0x");
-  }
-
   setupLockedRows() {
     this.lockedRows = [];
     for (let i = 0; i < boardRows; i++) {
@@ -417,7 +413,7 @@ class Game extends Phaser.Scene {
     this.board = this.add.rectangle(x, y, boardWidth, boardHeight);
     this.board.setOrigin(0);
     const gridLineColor = this.assetLoader.getColors().gridLine;
-    const color = this.getRectangleColor(gridLineColor);
+    const color = this.assetLoader.getRectangleColor(gridLineColor);
     this.board.setStrokeStyle(1, color);
   }
 
@@ -536,10 +532,10 @@ class Game extends Phaser.Scene {
       y,
       width,
       height,
-      this.getRectangleColor(fillColor),
+      this.assetLoader.getRectangleColor(fillColor),
       alpha
     );
-    mino.setStrokeStyle(1, this.getRectangleColor(strokeColor));
+    mino.setStrokeStyle(1, this.assetLoader.getRectangleColor(strokeColor));
     mino.setOrigin(0);
     return mino;
   }
