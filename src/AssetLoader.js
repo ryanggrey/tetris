@@ -10,6 +10,8 @@ class AssetLoader {
     this.game.load.json("tetrominoes", "assets/tetrominoes.json");
     this.game.load.json("wallkick", "assets/wallkick.json");
     this.game.load.json("score", "assets/score.json");
+    this.game.load.svg("play", "assets/play-button-svgrepo-com.svg");
+    this.game.load.svg("pause", "assets/pause-button-svgrepo-com.svg");
   }
 
   _getCacheKey(key) {

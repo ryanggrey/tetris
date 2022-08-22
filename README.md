@@ -30,6 +30,13 @@ Wall kick data and implementation taken from https://tetris.wiki/Super_Rotation_
 
 All sound effects taken from https://mixkit.co/free-sound-effects/game/
 
+## Icons
+
+Icons taken from:
+
+- [Play icon](https://www.svgrepo.com/svg/92733/play-button) - CC0 License
+- [Pause icon](https://www.svgrepo.com/svg/149631/pause-button) - CC0 License
+
 ## To Do
 
 - [x] Tetromino JSON model
@@ -94,4 +101,4 @@ All sound effects taken from https://mixkit.co/free-sound-effects/game/
 - [x] Unit tests
 - [x] Web hosting
 - [x] Pause - Desktop
-- [ ] Pause - Mobile
+- [x] Pause - Mobile
