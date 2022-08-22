@@ -467,7 +467,6 @@ class Game extends Phaser.Scene {
   }
 
   updateGhostTetromino() {
-    // spawn ghost tetromino at bottom of board
     if (this.ghostTetromino) {
       this.ghostTetromino.shape.destroy();
       this.ghostTetromino = null;
@@ -552,13 +551,7 @@ class Game extends Phaser.Scene {
     for (var rowIndex = this.lockedRows.length - 1; rowIndex >= 0; rowIndex--) {
       const lockedRow = this.lockedRows[rowIndex];
       if (indexDelta > 0) {
-        this.animateLineDrop(lockedRow, yDelta, animationDelay, ease);
-        this.animateLineDrop(
-          this.ghostTetromino.shape.list,
-          yDelta,
-          animationDelay,
-          ease
-        );
+        this.animateLineAndGhostDrop(lockedRow, yDelta, animationDelay, ease);
 
         this.lockedRows[rowIndex + indexDelta] = this.lockedRows[rowIndex];
         this.lockedRows[rowIndex] = [];
@@ -569,24 +562,7 @@ class Game extends Phaser.Scene {
         rowsCleared++;
         yDelta += this.minoHeight;
         indexDelta++;
-        for (const lockedMino of lockedRow) {
-          // tween scales from origin, which is top-left
-          // so set origin to centre and shift position to match
-          lockedMino.setOrigin(0.5);
-          lockedMino.x = lockedMino.x + lockedMino.width / 2;
-          lockedMino.y = lockedMino.y + lockedMino.height / 2;
-
-          this.tweens.add({
-            targets: lockedMino,
-            scale: 0,
-            duration: lineClearAnimationDuration,
-            delay: animationDelay(lockedMino),
-            ease,
-            onComplete: () => {
-              lockedMino.destroy();
-            },
-          });
-        }
+        this.animateRowClear(lockedRow, animationDelay, ease);
       }
     }
 
@@ -596,7 +572,42 @@ class Game extends Phaser.Scene {
     }
   }
 
-  animateLineDrop(minos, yDelta, animationDelay, ease) {
+  animateRowClear(lockedRow, animationDelay, ease) {
+    for (const lockedMino of lockedRow) {
+      // tween scales from origin, which is top-left
+      // so set origin to centre and shift position to match
+      lockedMino.setOrigin(0.5);
+      lockedMino.x = lockedMino.x + lockedMino.width / 2;
+      lockedMino.y = lockedMino.y + lockedMino.height / 2;
+
+      this.animateMinoClear(lockedMino, animationDelay, ease);
+    }
+  }
+
+  animateMinoClear(lockedMino, animationDelay, ease) {
+    this.tweens.add({
+      targets: lockedMino,
+      scale: 0,
+      duration: lineClearAnimationDuration,
+      delay: animationDelay(lockedMino),
+      ease,
+      onComplete: () => {
+        lockedMino.destroy();
+      },
+    });
+  }
+
+  animateLineAndGhostDrop(lockedRow, yDelta, animationDelay, ease) {
+    this.animateMinosDrop(lockedRow, yDelta, animationDelay, ease);
+    this.animateMinosDrop(
+      this.ghostTetromino.shape.list,
+      yDelta,
+      animationDelay,
+      ease
+    );
+  }
+
+  animateMinosDrop(minos, yDelta, animationDelay, ease) {
     for (const mino of minos) {
       const newY = mino.y + yDelta;
       this.tweens.add({
