@@ -101,4 +101,4 @@ Icons taken from:
 - [x] Unit tests
 - [x] Web hosting
 - [x] Pause - Desktop
-- [ ] Pause - Mobile
+- [x] Pause - Mobile
