@@ -1,10 +1,10 @@
 import Phaser from "phaser";
-import levelCalculator from "../levelCalculator";
 import NextTetrominoManager from "../NextTetrominoManager";
 import SoundPlayer from "../SoundPlayer";
 import AssetLoader from "../AssetLoader";
 import isMobile from "is-mobile";
 import pulse from "../tweener";
+import LevelManager from "../LevelManager";
 
 const boardColumns = 10;
 const boardRows = 20;
@@ -23,6 +23,16 @@ class Game extends Phaser.Scene {
     this.nextTetrominoManager = new NextTetrominoManager();
     this.soundPlayer = new SoundPlayer(this);
     this.assetLoader = new AssetLoader(this);
+
+    const onLevelUp = (newLevel) => {
+      this.soundPlayer.levelUp();
+      if (!this.levelValue) {
+        return;
+      }
+      this.levelValue.setText(newLevel);
+      pulse(this.levelValue, this);
+    };
+    this.levelManager = new LevelManager(onLevelUp);
   }
 
   init(data) {}
@@ -38,20 +48,6 @@ class Game extends Phaser.Scene {
       const lockedRow = [];
       this.lockedRows.push(lockedRow);
     }
-  }
-
-  setLevel(level) {
-    if (this.level === level) {
-      return;
-    }
-    this.level = level;
-
-    if (!this.levelValue) {
-      return;
-    }
-    this.levelValue.setText(this.level);
-    pulse(this.levelValue, this);
-    this.soundPlayer.levelUp();
   }
 
   setScore(score, isAnimated = true) {
@@ -92,7 +88,7 @@ class Game extends Phaser.Scene {
   }
 
   reset() {
-    this.setLevel(1);
+    this.levelManager.reset();
     this.setScore(0);
     this.setTotalRowsCleared(0);
     this.yDelta = 0;
@@ -204,7 +200,7 @@ class Game extends Phaser.Scene {
     this.levelValue = this.add.text(
       x,
       levelValueY,
-      `${this.level || 0}`,
+      `${this.levelManager.getLevel()}`,
       textStyle
     );
     this.linesKey = this.add.text(x, linesKeyY, "Lines", textStyle);
@@ -531,7 +527,7 @@ class Game extends Phaser.Scene {
     if (!scorePerLevel) {
       return;
     }
-    const earned = scorePerLevel * this.level;
+    const earned = scorePerLevel * this.levelManager.getLevel();
     const newScore = this.score + earned;
     this.setScore(newScore);
   }
@@ -628,12 +624,8 @@ class Game extends Phaser.Scene {
     }
 
     this.setTotalRowsCleared(newTotalRowsCleared);
-    this.incrementLevelFor(newTotalRowsCleared);
-  }
-
-  incrementLevelFor(totalRowsCleared) {
-    const newLevel = levelCalculator(totalRowsCleared);
-    this.setLevel(newLevel);
+    this.levelManager.incrementLevelFor(newTotalRowsCleared);
+    this.onLevelUp(this.levelManager.getLevel());
   }
 
   rowIndexFrom(mino) {
@@ -1020,10 +1012,10 @@ class Game extends Phaser.Scene {
       this.isHardDropping = false;
     }
 
+    const level = this.levelManager.getLevel();
     const gravityJson = this.assetLoader.getGravity();
     const maxGravityLevel = 15;
-    const gravityKey =
-      this.level > maxGravityLevel ? maxGravityLevel : this.level;
+    const gravityKey = level > maxGravityLevel ? maxGravityLevel : level;
     var gravity = gravityJson[gravityKey];
     const isSoftDrop = this.keyDown.isDown;
     if (isSoftDrop) {
