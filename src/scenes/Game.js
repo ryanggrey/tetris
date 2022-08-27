@@ -733,6 +733,7 @@ class Game extends Phaser.Scene {
       createBackgroundCallbackScope: undefined,
 
       createButtonCallback: (item, i) => {
+        const fontSize = scene.dimensions.font;
         return scene.rexUI.add.label({
           background: scene.rexUI.add.roundRectangle(
             0,
@@ -743,7 +744,7 @@ class Game extends Phaser.Scene {
             scene.assetLoader.getMenuColor("menuBackground")
           ),
           text: scene.add.text(0, 0, item.name, {
-            fontSize: i === 0 ? scene.fontSize + 15 : scene.fontSize,
+            fontSize: i === 0 ? fontSize + 15 : fontSize,
             color: scene.assetLoader.getColors()["menuText"],
             align: "center",
             width: menuWidth,
