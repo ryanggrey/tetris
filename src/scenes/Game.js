@@ -107,10 +107,6 @@ class Game extends Phaser.Scene {
     this.lockMoveCounter = 0;
 
     this.setupLockedRows();
-
-    // reset mobile controls
-    this.isTouchDown = false;
-    this.touchDownCounter = 0;
   }
 
   create(data) {
@@ -631,7 +627,7 @@ class Game extends Phaser.Scene {
   handleShiftRight() {
     const { das, arr } = this.assetLoader.getSpeed();
 
-    if (this.isRightHeld()) {
+    if (this.isShiftRightInputDown()) {
       if (this.rightDasCounter === 0) {
         this.shiftRight();
       }
@@ -646,7 +642,7 @@ class Game extends Phaser.Scene {
       this.rightDasCounter++;
     }
 
-    if (this.isRightReleased()) {
+    if (this.isShiftRightInputUp()) {
       this.rightDasCounter = 0;
       this.rightArrCounter = 0;
     }
@@ -654,7 +650,7 @@ class Game extends Phaser.Scene {
 
   handleShiftLeft() {
     const { das, arr } = this.assetLoader.getSpeed();
-    if (this.isLeftHeld()) {
+    if (this.isShiftLeftInputDown()) {
       if (this.leftDasCounter === 0) {
         this.shiftLeft();
       }
@@ -669,7 +665,7 @@ class Game extends Phaser.Scene {
       this.leftDasCounter++;
     }
 
-    if (this.isLeftReleased()) {
+    if (this.isShiftLeftInputUp()) {
       this.leftDasCounter = 0;
       this.leftArrCounter = 0;
     }
@@ -856,109 +852,67 @@ class Game extends Phaser.Scene {
 
     // assuming 60fps
     this.handleClearingRows();
-    this.handleMobileControls();
-    this.handleShiftRight();
-    this.handleShiftLeft();
-    this.handleRotateRight();
+    this.handleInputs();
     this.handleLocking();
     this.handleGravity();
   }
 
-  isLeftHeld() {
-    return this.keyLeft.isDown || this.isDraggingLeft;
+  handleInputs() {
+    this.handleShiftRight();
+    this.handleShiftLeft();
+    this.handleRotateRight();
   }
 
-  isLeftReleased() {
-    return this.keyLeft.isUp && !this.isDraggingLeft;
+  isShiftLeftInputDown() {
+    return this.keyLeft.isDown;
   }
 
-  isRightHeld() {
-    return this.keyRight.isDown || this.isDraggingRight;
+  isShiftLeftInputUp() {
+    return this.keyLeft.isUp;
   }
 
-  isRightReleased() {
-    return this.keyRight.isUp && !this.isDraggingRight;
+  isShiftRightInputDown() {
+    return this.keyRight.isDown;
   }
 
-  isUpHeld() {
-    return this.keyUp.isDown || this.isDraggingUp;
+  isShiftRightInputUp() {
+    return this.keyRight.isUp;
   }
 
-  isUpReleased() {
-    return this.keyUp.isUp && !this.isDraggingUp;
+  isShiftUpInputDown() {
+    return this.keyUp.isDown;
   }
 
-  isDownHeld() {
-    return this.keyDown.isDown || this.isDraggingDown;
+  isShiftUpInputUp() {
+    return this.keyUp.isUp;
   }
 
-  isDownReleased() {
-    return this.keyDown.isUp && !this.isDraggingDown;
+  isShiftDownInputDown() {
+    return this.keyDown.isDown;
   }
 
-  resetDraggingFlags() {
-    this.isDraggingLeft = false;
-    this.isDraggingRight = false;
-    this.isDraggingDown = false;
-    this.isDraggingUp = false;
+  isShiftDownInputUp() {
+    return this.keyDown.isUp;
   }
 
-  handleDrag() {
-    if (this.lastPointerX === null) {
-      this.lastPointerX = this.input.activePointer.x;
-      this.lastPointerY = this.input.activePointer.y;
-      return;
-    }
-
-    const deltaX = this.lastPointerX - this.input.activePointer.x;
-    const deltaY = this.lastPointerY - this.input.activePointer.y;
-    const xSensitivity = this.dimensions.mino.width;
-    const ySensitivity = this.dimensions.mino.height;
-    const isXTriggered = Math.abs(deltaX) > xSensitivity;
-    const isYTriggered = Math.abs(deltaY) > ySensitivity;
-
-    if (this.isTouchDown) {
-      if (Math.abs(deltaX) > Math.abs(deltaY)) {
-        if (isXTriggered) {
-          if (deltaX > 0) {
-            this.isDraggingLeft = true;
-          } else {
-            this.isDraggingRight = true;
-          }
-          this.lastPointerX = this.input.activePointer.x;
-        }
-      } else {
-        if (isYTriggered) {
-          if (deltaY > 0) {
-            this.isDraggingDown = true;
-          } else {
-            this.isDraggingUp = true;
-          }
-          this.lastPointerY = this.input.activePointer.y;
-        }
-      }
-    }
+  isHardDropInputDown() {
+    return this.keySpace.isDown;
   }
 
-  handleMobileControls() {
-    this.resetDraggingFlags();
+  isHardDropInputUp() {
+    return this.keySpace.isUp;
+  }
 
-    if (!this.input.activePointer.isDown) {
-      this.isTouchDown = false;
-      this.touchDownCounter = 0;
-      this.lastPointerX = null;
-      this.lastPointerY = null;
-      return;
-    } else if (this.input.activePointer.isDown) {
-      this.isTouchDown = true;
-      this.touchDownCounter++;
-    }
+  isSoftDropInputDown() {
+    return this.keyDown.isDown;
+  }
 
-    this.handleDrag();
+  isSoftDropInputUp() {
+    return this.keyDown.isUp;
   }
 
   handleGravity() {
-    const isHardDrop = this.keySpace.isDown;
+    const isHardDrop = this.isHardDropInputDown();
     if (isHardDrop && !this.isHardDropping) {
       this.isHardDropping = true;
       this.yDelta = 0;
@@ -973,7 +927,7 @@ class Game extends Phaser.Scene {
       return;
     }
 
-    if (this.keySpace.isUp) {
+    if (this.isHardDropInputUp()) {
       this.isHardDropping = false;
     }
 
@@ -982,7 +936,7 @@ class Game extends Phaser.Scene {
     const maxGravityLevel = 15;
     const gravityKey = level > maxGravityLevel ? maxGravityLevel : level;
     var gravity = gravityJson[gravityKey];
-    const isSoftDrop = this.keyDown.isDown;
+    const isSoftDrop = this.isSoftDropInputDown();
     if (isSoftDrop) {
       gravity = gravityJson["softdrop"];
       if (!this.isSoftDropping) {
@@ -991,8 +945,7 @@ class Game extends Phaser.Scene {
       }
     }
 
-    const isSoftDropFinished = this.keyDown.isUp;
-    if (isSoftDropFinished) {
+    if (this.isSoftDropInputUp()) {
       this.isSoftDropping = false;
     }
 
@@ -1015,11 +968,11 @@ class Game extends Phaser.Scene {
   }
 
   handleRotateRight() {
-    if (this.keyUp.isDown) {
+    if (this.isShiftUpInputDown()) {
       this.rotateRight();
     }
 
-    if (this.keyUp.isUp) {
+    if (this.isShiftUpInputUp()) {
       // rotating requires key lifts
       this.isRotating = false;
     }
