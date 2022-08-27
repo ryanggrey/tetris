@@ -39,6 +39,10 @@ class AssetLoader {
     return this.getColors()[borderName];
   }
 
+  getRectangleColor(rawColor) {
+    return rawColor.replace("#", "0x");
+  }
+
   getMenuColor(name) {
     const stringColor = this.getColors()[name];
     const numberColor = parseInt(stringColor.replace(/^#/, ""), 16);
