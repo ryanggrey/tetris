@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import colors from "../assets/colors";
 import UIPlugin from "phaser3-rex-plugins/templates/ui/ui-plugin.js";
+import GesturesPlugin from "phaser3-rex-plugins/plugins/gestures-plugin.js";
 
 export default {
   type: Phaser.AUTO,
@@ -18,6 +19,11 @@ export default {
         key: "rexUI",
         plugin: UIPlugin,
         mapping: "rexUI",
+      },
+      {
+        key: "rexGestures",
+        plugin: GesturesPlugin,
+        mapping: "rexGestures",
       },
     ],
   },

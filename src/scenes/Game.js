@@ -118,7 +118,7 @@ class Game extends Phaser.Scene {
       this.scale.baseSize.width,
       this.scale.baseSize.height
     );
-    this.createControls();
+    this.createInputHandlers();
     this.createBoard();
     this.createScoreSection();
     this.createPausePlayButton();
@@ -317,7 +317,7 @@ class Game extends Phaser.Scene {
     return button;
   }
 
-  createControls() {
+  createInputHandlers() {
     this.keyRight = this.input.keyboard.addKey(
       Phaser.Input.Keyboard.KeyCodes.RIGHT
     );
@@ -334,6 +334,26 @@ class Game extends Phaser.Scene {
     this.keyEsc = this.input.keyboard.addKey(
       Phaser.Input.Keyboard.KeyCodes.ESC
     );
+
+    this.tap = this.rexGestures.add.tap({
+      // enable: true,
+      // bounds: undefined,
+      // time: 250,
+      tapInterval: 10,
+      // threshold: 9,
+      // tapOffset: 10,
+      // taps: undefined,
+      // minTaps: undefined,
+      // maxTaps: undefined,
+    });
+
+    this.swipe = this.rexGestures.add.swipe({
+      // enable: true,
+      // bounds: undefined,
+      // threshold: 10,
+      // velocityThreshold: 1000,
+      dir: "4dir",
+    });
   }
 
   createBoard() {
@@ -864,26 +884,44 @@ class Game extends Phaser.Scene {
   }
 
   isShiftLeftInputDown() {
+    if (isMobile()) {
+      return this.swipe.left;
+    }
     return this.keyLeft.isDown;
   }
 
   isShiftLeftInputUp() {
+    if (isMobile()) {
+      return !this.swipe.left;
+    }
     return this.keyLeft.isUp;
   }
 
   isShiftRightInputDown() {
+    if (isMobile()) {
+      return this.swipe.right;
+    }
     return this.keyRight.isDown;
   }
 
   isShiftRightInputUp() {
+    if (isMobile()) {
+      return !this.swipe.right;
+    }
     return this.keyRight.isUp;
   }
 
   isShiftUpInputDown() {
+    if (isMobile()) {
+      return this.tap.isTapped;
+    }
     return this.keyUp.isDown;
   }
 
   isShiftUpInputUp() {
+    if (isMobile()) {
+      !this.tap.isTapped;
+    }
     return this.keyUp.isUp;
   }
 
@@ -896,10 +934,16 @@ class Game extends Phaser.Scene {
   }
 
   isHardDropInputDown() {
+    if (isMobile()) {
+      return this.swipe.down;
+    }
     return this.keySpace.isDown;
   }
 
   isHardDropInputUp() {
+    if (isMobile()) {
+      !this.swipe.down;
+    }
     return this.keySpace.isUp;
   }
 
