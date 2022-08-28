@@ -107,6 +107,10 @@ class Game extends Phaser.Scene {
     this.lockMoveCounter = 0;
 
     this.setupLockedRows();
+
+    this.dragAnchorRight = null;
+    this.dragAnchorLeft = null;
+    this.dragAnchorDown = null;
   }
 
   create(data) {
@@ -347,12 +351,25 @@ class Game extends Phaser.Scene {
       // maxTaps: undefined,
     });
 
+    this.pan = this.rexGestures.add.pan({
+      // enable: true,
+      // bounds: undefined,
+      threshold: this.dimensions.mino.width,
+    });
+
     this.swipe = this.rexGestures.add.swipe({
       // enable: true,
       // bounds: undefined,
-      // threshold: 10,
+      threshold: this.dimensions.mino.width,
       // velocityThreshold: 1000,
       dir: "4dir",
+    });
+
+    this.press = this.rexGestures.add.press({
+      // enable: true,
+      // bounds: undefined,
+      // time: 251,
+      threshold: Number.MAX_SAFE_INTEGER,
     });
   }
 
@@ -885,52 +902,61 @@ class Game extends Phaser.Scene {
 
   isShiftLeftInputDown() {
     if (isMobile()) {
-      return this.swipe.left;
+      if (this.swipe.down) {
+        return false;
+      }
+      return (
+        this.swipe.left ||
+        (this.pan.isPanned &&
+          this.pan.dx < 0 &&
+          this.pan.x < this.tetromino.shape.getBounds().centerX)
+      );
     }
     return this.keyLeft.isDown;
   }
 
   isShiftLeftInputUp() {
     if (isMobile()) {
-      return !this.swipe.left;
+      return true;
     }
     return this.keyLeft.isUp;
   }
 
   isShiftRightInputDown() {
     if (isMobile()) {
-      return this.swipe.right;
+      if (this.swipe.down) {
+        return false;
+      }
+      return (
+        this.swipe.right ||
+        (this.pan.isPanned &&
+          this.pan.isPanned &&
+          this.pan.dx > 0 &&
+          this.pan.x > this.tetromino.shape.getBounds().centerX)
+      );
     }
     return this.keyRight.isDown;
   }
 
   isShiftRightInputUp() {
     if (isMobile()) {
-      return !this.swipe.right;
+      return true;
     }
     return this.keyRight.isUp;
   }
 
-  isShiftUpInputDown() {
+  isRotateRightInputDown() {
     if (isMobile()) {
       return this.tap.isTapped;
     }
     return this.keyUp.isDown;
   }
 
-  isShiftUpInputUp() {
+  isRotateRightInputUp() {
     if (isMobile()) {
-      !this.tap.isTapped;
+      return !this.tap.isTapped;
     }
     return this.keyUp.isUp;
-  }
-
-  isShiftDownInputDown() {
-    return this.keyDown.isDown;
-  }
-
-  isShiftDownInputUp() {
-    return this.keyDown.isUp;
   }
 
   isHardDropInputDown() {
@@ -941,40 +967,27 @@ class Game extends Phaser.Scene {
   }
 
   isHardDropInputUp() {
-    if (isMobile()) {
-      !this.swipe.down;
-    }
-    return this.keySpace.isUp;
+    return !this.isHardDropInputDown();
   }
 
   isSoftDropInputDown() {
+    if (isMobile()) {
+      const isPanned = this.pan.isPanned;
+      const isYDominant = this.pan.dy > this.pan.dx;
+      const isYOverThreshold =
+        Math.abs(this.pan.startY - this.pan.y) >
+        this.dimensions.mino.height * 4;
+      const isDown = isPanned && isYDominant && isYOverThreshold;
+      return isDown;
+    }
     return this.keyDown.isDown;
   }
 
   isSoftDropInputUp() {
-    return this.keyDown.isUp;
+    return !this.isSoftDropInputDown();
   }
 
   handleGravity() {
-    const isHardDrop = this.isHardDropInputDown();
-    if (isHardDrop && !this.isHardDropping) {
-      this.isHardDropping = true;
-      this.yDelta = 0;
-      const numberOfRowsDropped = this.shiftToBottom(this.tetromino, true);
-      const { hardDropPerRow } = this.assetLoader.getScore();
-      const newScore = this.score + hardDropPerRow * numberOfRowsDropped;
-      this.setScore(newScore, false);
-      this.soundPlayer.hardDrop();
-
-      this.lockTetromino();
-      this.spawnTetromino();
-      return;
-    }
-
-    if (this.isHardDropInputUp()) {
-      this.isHardDropping = false;
-    }
-
     const level = this.levelManager.getLevel();
     const gravityJson = this.assetLoader.getGravity();
     const maxGravityLevel = 15;
@@ -1009,14 +1022,33 @@ class Game extends Phaser.Scene {
         this.setScore(newScore, false);
       }
     }
+
+    const isHardDrop = this.isHardDropInputDown();
+    if (isHardDrop && !this.isHardDropping) {
+      this.isHardDropping = true;
+      this.yDelta = 0;
+      const numberOfRowsDropped = this.shiftToBottom(this.tetromino, true);
+      const { hardDropPerRow } = this.assetLoader.getScore();
+      const newScore = this.score + hardDropPerRow * numberOfRowsDropped;
+      this.setScore(newScore, false);
+      this.soundPlayer.hardDrop();
+
+      this.lockTetromino();
+      this.spawnTetromino();
+      return;
+    }
+
+    if (this.isHardDropInputUp()) {
+      this.isHardDropping = false;
+    }
   }
 
   handleRotateRight() {
-    if (this.isShiftUpInputDown()) {
+    if (this.isRotateRightInputDown()) {
       this.rotateRight();
     }
 
-    if (this.isShiftUpInputUp()) {
+    if (this.isRotateRightInputUp()) {
       // rotating requires key lifts
       this.isRotating = false;
     }
