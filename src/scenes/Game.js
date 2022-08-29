@@ -375,10 +375,9 @@ class Game extends Phaser.Scene {
 
   createBoard() {
     const boardWidth = this.dimensions.board.width;
-    const boardHeight = boardRows * this.dimensions.mino.height;
-    const baseSize = this.scale.baseSize;
+    const boardHeight = this.dimensions.board.height;
     const x = this.dimensions.board.x;
-    const y = Math.floor(baseSize.height / 2 - boardHeight / 2);
+    const y = this.dimensions.board.y;
 
     this.board = this.add.rectangle(x, y, boardWidth, boardHeight);
     this.board.setOrigin(0);
@@ -530,7 +529,7 @@ class Game extends Phaser.Scene {
     const ease = Phaser.Math.Easing.Sine.InOut;
     const animationDelay = (mino) => {
       const minoColIndex = (mino) =>
-        (mino.getBounds().left - this.board.getBounds().left) /
+        (mino.getBounds().left - this.dimensions.board.xc) /
         this.dimensions.mino.width;
 
       return (lineClearAnimationDuration / boardColumns) * minoColIndex(mino);
@@ -624,14 +623,14 @@ class Game extends Phaser.Scene {
 
   rowIndexFrom(mino) {
     const rowIndex =
-      (mino.getBounds().top - this.board.getBounds().top) /
+      (mino.getBounds().top - this.dimensions.board.y) /
       this.dimensions.mino.height;
     return rowIndex;
   }
 
   columnIndexFrom(mino) {
     const columnIndex =
-      (mino.getBounds().left - this.board.getBounds().left) /
+      (mino.getBounds().left - this.dimensions.board.x) /
       this.dimensions.mino.width;
     return columnIndex;
   }
@@ -1105,12 +1104,16 @@ class Game extends Phaser.Scene {
       if (!mino.canCollide) {
         continue;
       }
-      const isOverlappingLeft =
-        mino.getBounds().left < this.board.getBounds().left;
-      const isOverlappingRight =
-        mino.getBounds().right > this.board.getBounds().right;
-      const isOverlappingBottom =
-        mino.getBounds().bottom > this.board.getBounds().bottom;
+
+      const minoBounds = mino.getBounds();
+      const boardLeft = this.dimensions.board.x;
+      const boardRight = boardLeft + this.dimensions.board.width;
+      const boardTop = this.dimensions.board.y;
+      const boardBottom = boardTop + this.dimensions.board.height;
+
+      const isOverlappingLeft = minoBounds.left < boardLeft;
+      const isOverlappingRight = minoBounds.right > boardRight;
+      const isOverlappingBottom = minoBounds.bottom > boardBottom;
       // ignore top
 
       isOverlap ||=
@@ -1235,11 +1238,13 @@ class Game extends Phaser.Scene {
     var isOnAnotherTetromino = false;
     for (const lockedRow of this.lockedRows) {
       for (const lockedMino of lockedRow) {
+        const lockedMinoBounds = lockedMino.getBounds();
         for (const mino of this.tetromino.shape.list) {
-          const lockedLeft = lockedMino.getBounds().left;
-          const activeLeft = mino.getBounds().left;
-          const lockedTop = lockedMino.getBounds().top;
-          const activeBottom = mino.getBounds().bottom;
+          const minoBounds = mino.getBounds();
+          const lockedLeft = lockedMinoBounds.left;
+          const activeLeft = minoBounds.left;
+          const lockedTop = lockedMinoBounds.top;
+          const activeBottom = minoBounds.bottom;
 
           const isSameColumn = lockedLeft === activeLeft;
           const isOnTop = lockedTop === activeBottom;

@@ -21,6 +21,7 @@ const createGameDimensions = (gameColumns, gameRows, gameWidth, gameHeight) => {
 
   const scoreSectionWidth = scoreSectionColumns * minoWidth;
   const boardSectionWidth = boardSectionColumns * minoWidth;
+  const boardSectionHeight = gameRows * minoHeight;
   const nextSectionWidth = nextSectionColumns * minoWidth;
 
   const score = {
@@ -29,7 +30,9 @@ const createGameDimensions = (gameColumns, gameRows, gameWidth, gameHeight) => {
   };
   const board = {
     x: score.x + score.width,
+    y: Math.floor(gameHeight / 2 - boardSectionHeight / 2),
     width: boardSectionWidth,
+    height: boardSectionHeight,
   };
   const next = {
     x: board.x + board.width,
