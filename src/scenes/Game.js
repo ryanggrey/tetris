@@ -108,9 +108,9 @@ class Game extends Phaser.Scene {
 
     this.setupLockedRows();
 
-    // reset mobile controls
-    this.isTouchDown = false;
-    this.touchDownCounter = 0;
+    this.dragAnchorRight = null;
+    this.dragAnchorLeft = null;
+    this.dragAnchorDown = null;
   }
 
   create(data) {
@@ -122,7 +122,7 @@ class Game extends Phaser.Scene {
       this.scale.baseSize.width,
       this.scale.baseSize.height
     );
-    this.createControls();
+    this.createInputHandlers();
     this.createBoard();
     this.createScoreSection();
     this.createPausePlayButton();
@@ -321,7 +321,7 @@ class Game extends Phaser.Scene {
     return button;
   }
 
-  createControls() {
+  createInputHandlers() {
     this.keyRight = this.input.keyboard.addKey(
       Phaser.Input.Keyboard.KeyCodes.RIGHT
     );
@@ -338,6 +338,39 @@ class Game extends Phaser.Scene {
     this.keyEsc = this.input.keyboard.addKey(
       Phaser.Input.Keyboard.KeyCodes.ESC
     );
+
+    this.tap = this.rexGestures.add.tap({
+      // enable: true,
+      // bounds: undefined,
+      // time: 250,
+      tapInterval: 10,
+      // threshold: 9,
+      // tapOffset: 10,
+      // taps: undefined,
+      // minTaps: undefined,
+      // maxTaps: undefined,
+    });
+
+    this.pan = this.rexGestures.add.pan({
+      // enable: true,
+      // bounds: undefined,
+      threshold: this.dimensions.mino.width,
+    });
+
+    this.swipe = this.rexGestures.add.swipe({
+      // enable: true,
+      // bounds: undefined,
+      threshold: this.dimensions.mino.width,
+      // velocityThreshold: 1000,
+      dir: "4dir",
+    });
+
+    this.press = this.rexGestures.add.press({
+      // enable: true,
+      // bounds: undefined,
+      // time: 251,
+      threshold: Number.MAX_SAFE_INTEGER,
+    });
   }
 
   createBoard() {
@@ -587,7 +620,6 @@ class Game extends Phaser.Scene {
 
     this.setTotalRowsCleared(newTotalRowsCleared);
     this.levelManager.incrementLevelFor(newTotalRowsCleared);
-    this.onLevelUp(this.levelManager.getLevel());
   }
 
   rowIndexFrom(mino) {
@@ -631,7 +663,7 @@ class Game extends Phaser.Scene {
   handleShiftRight() {
     const { das, arr } = this.assetLoader.getSpeed();
 
-    if (this.isRightHeld()) {
+    if (this.isShiftRightInputDown()) {
       if (this.rightDasCounter === 0) {
         this.shiftRight();
       }
@@ -646,7 +678,7 @@ class Game extends Phaser.Scene {
       this.rightDasCounter++;
     }
 
-    if (this.isRightReleased()) {
+    if (this.isShiftRightInputUp()) {
       this.rightDasCounter = 0;
       this.rightArrCounter = 0;
     }
@@ -654,7 +686,7 @@ class Game extends Phaser.Scene {
 
   handleShiftLeft() {
     const { das, arr } = this.assetLoader.getSpeed();
-    if (this.isLeftHeld()) {
+    if (this.isShiftLeftInputDown()) {
       if (this.leftDasCounter === 0) {
         this.shiftLeft();
       }
@@ -669,7 +701,7 @@ class Game extends Phaser.Scene {
       this.leftDasCounter++;
     }
 
-    if (this.isLeftReleased()) {
+    if (this.isShiftLeftInputUp()) {
       this.leftDasCounter = 0;
       this.leftArrCounter = 0;
     }
@@ -856,133 +888,111 @@ class Game extends Phaser.Scene {
 
     // assuming 60fps
     this.handleClearingRows();
-    this.handleMobileControls();
-    this.handleShiftRight();
-    this.handleShiftLeft();
-    this.handleRotateRight();
+    this.handleInputs();
     this.handleLocking();
     this.handleGravity();
   }
 
-  isLeftHeld() {
-    return this.keyLeft.isDown || this.isDraggingLeft;
+  handleInputs() {
+    this.handleShiftRight();
+    this.handleShiftLeft();
+    this.handleRotateRight();
   }
 
-  isLeftReleased() {
-    return this.keyLeft.isUp && !this.isDraggingLeft;
-  }
-
-  isRightHeld() {
-    return this.keyRight.isDown || this.isDraggingRight;
-  }
-
-  isRightReleased() {
-    return this.keyRight.isUp && !this.isDraggingRight;
-  }
-
-  isUpHeld() {
-    return this.keyUp.isDown || this.isDraggingUp;
-  }
-
-  isUpReleased() {
-    return this.keyUp.isUp && !this.isDraggingUp;
-  }
-
-  isDownHeld() {
-    return this.keyDown.isDown || this.isDraggingDown;
-  }
-
-  isDownReleased() {
-    return this.keyDown.isUp && !this.isDraggingDown;
-  }
-
-  resetDraggingFlags() {
-    this.isDraggingLeft = false;
-    this.isDraggingRight = false;
-    this.isDraggingDown = false;
-    this.isDraggingUp = false;
-  }
-
-  handleDrag() {
-    if (this.lastPointerX === null) {
-      this.lastPointerX = this.input.activePointer.x;
-      this.lastPointerY = this.input.activePointer.y;
-      return;
-    }
-
-    const deltaX = this.lastPointerX - this.input.activePointer.x;
-    const deltaY = this.lastPointerY - this.input.activePointer.y;
-    const xSensitivity = this.dimensions.mino.width;
-    const ySensitivity = this.dimensions.mino.height;
-    const isXTriggered = Math.abs(deltaX) > xSensitivity;
-    const isYTriggered = Math.abs(deltaY) > ySensitivity;
-
-    if (this.isTouchDown) {
-      if (Math.abs(deltaX) > Math.abs(deltaY)) {
-        if (isXTriggered) {
-          if (deltaX > 0) {
-            this.isDraggingLeft = true;
-          } else {
-            this.isDraggingRight = true;
-          }
-          this.lastPointerX = this.input.activePointer.x;
-        }
-      } else {
-        if (isYTriggered) {
-          if (deltaY > 0) {
-            this.isDraggingDown = true;
-          } else {
-            this.isDraggingUp = true;
-          }
-          this.lastPointerY = this.input.activePointer.y;
-        }
+  isShiftLeftInputDown() {
+    if (isMobile()) {
+      if (this.swipe.down) {
+        return false;
       }
+      return (
+        this.swipe.left ||
+        (this.pan.isPanned &&
+          this.pan.dx < 0 &&
+          this.pan.x < this.tetromino.shape.getBounds().centerX)
+      );
     }
+    return this.keyLeft.isDown;
   }
 
-  handleMobileControls() {
-    this.resetDraggingFlags();
-
-    if (!this.input.activePointer.isDown) {
-      this.isTouchDown = false;
-      this.touchDownCounter = 0;
-      this.lastPointerX = null;
-      this.lastPointerY = null;
-      return;
-    } else if (this.input.activePointer.isDown) {
-      this.isTouchDown = true;
-      this.touchDownCounter++;
+  isShiftLeftInputUp() {
+    if (isMobile()) {
+      return true;
     }
+    return this.keyLeft.isUp;
+  }
 
-    this.handleDrag();
+  isShiftRightInputDown() {
+    if (isMobile()) {
+      if (this.swipe.down) {
+        return false;
+      }
+      return (
+        this.swipe.right ||
+        (this.pan.isPanned &&
+          this.pan.isPanned &&
+          this.pan.dx > 0 &&
+          this.pan.x > this.tetromino.shape.getBounds().centerX)
+      );
+    }
+    return this.keyRight.isDown;
+  }
+
+  isShiftRightInputUp() {
+    if (isMobile()) {
+      return true;
+    }
+    return this.keyRight.isUp;
+  }
+
+  isRotateRightInputDown() {
+    if (isMobile()) {
+      return this.tap.isTapped;
+    }
+    return this.keyUp.isDown;
+  }
+
+  isRotateRightInputUp() {
+    if (isMobile()) {
+      return !this.tap.isTapped;
+    }
+    return this.keyUp.isUp;
+  }
+
+  isHardDropInputDown() {
+    if (isMobile()) {
+      return this.swipe.down;
+    }
+    return this.keySpace.isDown;
+  }
+
+  isHardDropInputUp() {
+    return !this.isHardDropInputDown();
+  }
+
+  isSoftDropInputDown() {
+    if (isMobile()) {
+      const isPanned = this.pan.isPanned;
+      const isYDominant = this.pan.dy > this.pan.dx;
+      const isYOverThreshold =
+        Math.abs(this.pan.startY - this.pan.y) >
+        this.dimensions.mino.height * 4;
+      const isDown = isPanned && isYDominant && isYOverThreshold;
+      return isDown;
+    }
+    return this.keyDown.isDown;
+  }
+
+  isSoftDropInputUp() {
+    return !this.isSoftDropInputDown();
   }
 
   handleGravity() {
-    const isHardDrop = this.keySpace.isDown;
-    if (isHardDrop && !this.isHardDropping) {
-      this.isHardDropping = true;
-      this.yDelta = 0;
-      const numberOfRowsDropped = this.shiftToBottom(this.tetromino, true);
-      const { hardDropPerRow } = this.assetLoader.getScore();
-      const newScore = this.score + hardDropPerRow * numberOfRowsDropped;
-      this.setScore(newScore, false);
-      this.soundPlayer.hardDrop();
-
-      this.lockTetromino();
-      this.spawnTetromino();
-      return;
-    }
-
-    if (this.keySpace.isUp) {
-      this.isHardDropping = false;
-    }
-
     const level = this.levelManager.getLevel();
     const gravityJson = this.assetLoader.getGravity();
     const maxGravityLevel = 15;
     const gravityKey = level > maxGravityLevel ? maxGravityLevel : level;
     var gravity = gravityJson[gravityKey];
-    const isSoftDrop = this.keyDown.isDown;
+    const isSoftDrop = this.isSoftDropInputDown();
     if (isSoftDrop) {
       gravity = gravityJson["softdrop"];
       if (!this.isSoftDropping) {
@@ -991,8 +1001,7 @@ class Game extends Phaser.Scene {
       }
     }
 
-    const isSoftDropFinished = this.keyDown.isUp;
-    if (isSoftDropFinished) {
+    if (this.isSoftDropInputUp()) {
       this.isSoftDropping = false;
     }
 
@@ -1012,14 +1021,33 @@ class Game extends Phaser.Scene {
         this.setScore(newScore, false);
       }
     }
+
+    const isHardDrop = this.isHardDropInputDown();
+    if (isHardDrop && !this.isHardDropping) {
+      this.isHardDropping = true;
+      this.yDelta = 0;
+      const numberOfRowsDropped = this.shiftToBottom(this.tetromino, true);
+      const { hardDropPerRow } = this.assetLoader.getScore();
+      const newScore = this.score + hardDropPerRow * numberOfRowsDropped;
+      this.setScore(newScore, false);
+      this.soundPlayer.hardDrop();
+
+      this.lockTetromino();
+      this.spawnTetromino();
+      return;
+    }
+
+    if (this.isHardDropInputUp()) {
+      this.isHardDropping = false;
+    }
   }
 
   handleRotateRight() {
-    if (this.keyUp.isDown) {
+    if (this.isRotateRightInputDown()) {
       this.rotateRight();
     }
 
-    if (this.keyUp.isUp) {
+    if (this.isRotateRightInputUp()) {
       // rotating requires key lifts
       this.isRotating = false;
     }
