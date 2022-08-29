@@ -620,7 +620,6 @@ class Game extends Phaser.Scene {
 
     this.setTotalRowsCleared(newTotalRowsCleared);
     this.levelManager.incrementLevelFor(newTotalRowsCleared);
-    this.onLevelUp(this.levelManager.getLevel());
   }
 
   rowIndexFrom(mino) {
