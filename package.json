@@ -23,7 +23,7 @@
     "raw-loader": "^4.0.2",
     "webpack": "^4.44.2",
     "webpack-cli": "^4.10.0",
-    "webpack-dev-server": "^4.10.0"
+    "webpack-dev-server": "^4.10.1"
   },
   "dependencies": {
     "is-mobile": "^3.1.1",
