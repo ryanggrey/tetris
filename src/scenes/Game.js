@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import NextTetrominoManager from "../NextTetrominoManager";
 import SoundPlayer from "../SoundPlayer";
 import AssetLoader from "../AssetLoader";
-import isMobile from "is-mobile";
+import isItMobile from "is-mobile";
 import pulse from "../tweener";
 import LevelManager from "../LevelManager";
 import createGameDimensions from "../createGameDimensions";
@@ -17,6 +17,8 @@ const buttonNames = {
 const menuNames = {
   resume: "Resume - Esc",
 };
+
+const isMobile = isItMobile();
 
 class Game extends Phaser.Scene {
   constructor() {
@@ -297,7 +299,7 @@ class Game extends Phaser.Scene {
   }
 
   setupPausePlayButton(assetName) {
-    if (!isMobile()) {
+    if (!isMobile) {
       // then we don't need a pause button
       return;
     }
@@ -375,10 +377,9 @@ class Game extends Phaser.Scene {
 
   createBoard() {
     const boardWidth = this.dimensions.board.width;
-    const boardHeight = boardRows * this.dimensions.mino.height;
-    const baseSize = this.scale.baseSize;
+    const boardHeight = this.dimensions.board.height;
     const x = this.dimensions.board.x;
-    const y = Math.floor(baseSize.height / 2 - boardHeight / 2);
+    const y = this.dimensions.board.y;
 
     this.board = this.add.rectangle(x, y, boardWidth, boardHeight);
     this.board.setOrigin(0);
@@ -530,7 +531,7 @@ class Game extends Phaser.Scene {
     const ease = Phaser.Math.Easing.Sine.InOut;
     const animationDelay = (mino) => {
       const minoColIndex = (mino) =>
-        (mino.getBounds().left - this.board.getBounds().left) /
+        (mino.getBounds().left - this.dimensions.board.x) /
         this.dimensions.mino.width;
 
       return (lineClearAnimationDuration / boardColumns) * minoColIndex(mino);
@@ -624,14 +625,14 @@ class Game extends Phaser.Scene {
 
   rowIndexFrom(mino) {
     const rowIndex =
-      (mino.getBounds().top - this.board.getBounds().top) /
+      (mino.getBounds().top - this.dimensions.board.y) /
       this.dimensions.mino.height;
     return rowIndex;
   }
 
   columnIndexFrom(mino) {
     const columnIndex =
-      (mino.getBounds().left - this.board.getBounds().left) /
+      (mino.getBounds().left - this.dimensions.board.x) /
       this.dimensions.mino.width;
     return columnIndex;
   }
@@ -900,7 +901,7 @@ class Game extends Phaser.Scene {
   }
 
   isShiftLeftInputDown() {
-    if (isMobile()) {
+    if (isMobile) {
       if (this.swipe.down) {
         return false;
       }
@@ -915,14 +916,14 @@ class Game extends Phaser.Scene {
   }
 
   isShiftLeftInputUp() {
-    if (isMobile()) {
+    if (isMobile) {
       return true;
     }
     return this.keyLeft.isUp;
   }
 
   isShiftRightInputDown() {
-    if (isMobile()) {
+    if (isMobile) {
       if (this.swipe.down) {
         return false;
       }
@@ -938,28 +939,28 @@ class Game extends Phaser.Scene {
   }
 
   isShiftRightInputUp() {
-    if (isMobile()) {
+    if (isMobile) {
       return true;
     }
     return this.keyRight.isUp;
   }
 
   isRotateRightInputDown() {
-    if (isMobile()) {
+    if (isMobile) {
       return this.tap.isTapped;
     }
     return this.keyUp.isDown;
   }
 
   isRotateRightInputUp() {
-    if (isMobile()) {
+    if (isMobile) {
       return !this.tap.isTapped;
     }
     return this.keyUp.isUp;
   }
 
   isHardDropInputDown() {
-    if (isMobile()) {
+    if (isMobile) {
       return this.swipe.down;
     }
     return this.keySpace.isDown;
@@ -970,7 +971,7 @@ class Game extends Phaser.Scene {
   }
 
   isSoftDropInputDown() {
-    if (isMobile()) {
+    if (isMobile) {
       const isPanned = this.pan.isPanned;
       const isYDominant = this.pan.dy > this.pan.dx;
       const isYOverThreshold =
@@ -1105,12 +1106,16 @@ class Game extends Phaser.Scene {
       if (!mino.canCollide) {
         continue;
       }
-      const isOverlappingLeft =
-        mino.getBounds().left < this.board.getBounds().left;
-      const isOverlappingRight =
-        mino.getBounds().right > this.board.getBounds().right;
-      const isOverlappingBottom =
-        mino.getBounds().bottom > this.board.getBounds().bottom;
+
+      const minoBounds = mino.getBounds();
+      const boardLeft = this.dimensions.board.x;
+      const boardRight = boardLeft + this.dimensions.board.width;
+      const boardTop = this.dimensions.board.y;
+      const boardBottom = boardTop + this.dimensions.board.height;
+
+      const isOverlappingLeft = minoBounds.left < boardLeft;
+      const isOverlappingRight = minoBounds.right > boardRight;
+      const isOverlappingBottom = minoBounds.bottom > boardBottom;
       // ignore top
 
       isOverlap ||=
@@ -1235,11 +1240,13 @@ class Game extends Phaser.Scene {
     var isOnAnotherTetromino = false;
     for (const lockedRow of this.lockedRows) {
       for (const lockedMino of lockedRow) {
+        const lockedMinoBounds = lockedMino.getBounds();
         for (const mino of this.tetromino.shape.list) {
-          const lockedLeft = lockedMino.getBounds().left;
-          const activeLeft = mino.getBounds().left;
-          const lockedTop = lockedMino.getBounds().top;
-          const activeBottom = mino.getBounds().bottom;
+          const minoBounds = mino.getBounds();
+          const lockedLeft = lockedMinoBounds.left;
+          const activeLeft = minoBounds.left;
+          const lockedTop = lockedMinoBounds.top;
+          const activeBottom = minoBounds.bottom;
 
           const isSameColumn = lockedLeft === activeLeft;
           const isOnTop = lockedTop === activeBottom;
