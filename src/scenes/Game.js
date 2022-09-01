@@ -887,8 +887,6 @@ class Game extends Phaser.Scene {
       return;
     }
 
-    this.nextKey.setText(this.game.loop.actualFps);
-
     // assuming 60fps
     this.handleClearingRows();
     this.handleInputs();
