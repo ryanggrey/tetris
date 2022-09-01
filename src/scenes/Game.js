@@ -531,7 +531,7 @@ class Game extends Phaser.Scene {
     const ease = Phaser.Math.Easing.Sine.InOut;
     const animationDelay = (mino) => {
       const minoColIndex = (mino) =>
-        (mino.getBounds().left - this.dimensions.board.xc) /
+        (mino.getBounds().left - this.dimensions.board.x) /
         this.dimensions.mino.width;
 
       return (lineClearAnimationDuration / boardColumns) * minoColIndex(mino);
