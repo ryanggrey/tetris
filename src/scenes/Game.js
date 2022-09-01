@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import NextTetrominoManager from "../NextTetrominoManager";
 import SoundPlayer from "../SoundPlayer";
 import AssetLoader from "../AssetLoader";
-import isMobile from "is-mobile";
+import isItMobile from "is-mobile";
 import pulse from "../tweener";
 import LevelManager from "../LevelManager";
 import createGameDimensions from "../createGameDimensions";
@@ -17,6 +17,8 @@ const buttonNames = {
 const menuNames = {
   resume: "Resume - Esc",
 };
+
+const isMobile = isItMobile();
 
 class Game extends Phaser.Scene {
   constructor() {
@@ -297,7 +299,7 @@ class Game extends Phaser.Scene {
   }
 
   setupPausePlayButton(assetName) {
-    if (!isMobile()) {
+    if (!isMobile) {
       // then we don't need a pause button
       return;
     }
@@ -885,6 +887,8 @@ class Game extends Phaser.Scene {
       return;
     }
 
+    this.nextKey.setText(this.game.loop.actualFps);
+
     // assuming 60fps
     this.handleClearingRows();
     this.handleInputs();
@@ -899,7 +903,7 @@ class Game extends Phaser.Scene {
   }
 
   isShiftLeftInputDown() {
-    if (isMobile()) {
+    if (isMobile) {
       if (this.swipe.down) {
         return false;
       }
@@ -914,14 +918,14 @@ class Game extends Phaser.Scene {
   }
 
   isShiftLeftInputUp() {
-    if (isMobile()) {
+    if (isMobile) {
       return true;
     }
     return this.keyLeft.isUp;
   }
 
   isShiftRightInputDown() {
-    if (isMobile()) {
+    if (isMobile) {
       if (this.swipe.down) {
         return false;
       }
@@ -937,28 +941,28 @@ class Game extends Phaser.Scene {
   }
 
   isShiftRightInputUp() {
-    if (isMobile()) {
+    if (isMobile) {
       return true;
     }
     return this.keyRight.isUp;
   }
 
   isRotateRightInputDown() {
-    if (isMobile()) {
+    if (isMobile) {
       return this.tap.isTapped;
     }
     return this.keyUp.isDown;
   }
 
   isRotateRightInputUp() {
-    if (isMobile()) {
+    if (isMobile) {
       return !this.tap.isTapped;
     }
     return this.keyUp.isUp;
   }
 
   isHardDropInputDown() {
-    if (isMobile()) {
+    if (isMobile) {
       return this.swipe.down;
     }
     return this.keySpace.isDown;
@@ -969,7 +973,7 @@ class Game extends Phaser.Scene {
   }
 
   isSoftDropInputDown() {
-    if (isMobile()) {
+    if (isMobile) {
       const isPanned = this.pan.isPanned;
       const isYDominant = this.pan.dy > this.pan.dx;
       const isYOverThreshold =
