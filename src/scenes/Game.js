@@ -96,6 +96,7 @@ class Game extends Phaser.Scene {
     this.setTotalRowsCleared(0);
     this.yDelta = 0;
     this.isRotating = false;
+    this.isRotatingLeft = false;
 
     // Delayed Auto Shift (DAS) counter
     this.rightDasCounter = 0;
@@ -118,6 +119,7 @@ class Game extends Phaser.Scene {
   create(data) {
     this.reset();
 
+    this.gameWidth = this.scale.baseSize.width;
     this.dimensions = createGameDimensions(
       boardColumns,
       boardRows,
@@ -340,6 +342,7 @@ class Game extends Phaser.Scene {
     this.keyEsc = this.input.keyboard.addKey(
       Phaser.Input.Keyboard.KeyCodes.ESC
     );
+    this.keyZ = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
 
     this.tap = this.rexGestures.add.tap({
       // enable: true,
@@ -898,6 +901,7 @@ class Game extends Phaser.Scene {
     this.handleShiftRight();
     this.handleShiftLeft();
     this.handleRotateRight();
+    this.handleRotateLeft();
   }
 
   isShiftLeftInputDown() {
@@ -917,7 +921,7 @@ class Game extends Phaser.Scene {
 
   isShiftLeftInputUp() {
     if (isMobile) {
-      return true;
+      return !this.isShiftLeftInputDown();
     }
     return this.keyLeft.isUp;
   }
@@ -930,7 +934,6 @@ class Game extends Phaser.Scene {
       return (
         this.swipe.right ||
         (this.pan.isPanned &&
-          this.pan.isPanned &&
           this.pan.dx > 0 &&
           this.pan.x > this.tetromino.shape.getBounds().centerX)
       );
@@ -940,23 +943,37 @@ class Game extends Phaser.Scene {
 
   isShiftRightInputUp() {
     if (isMobile) {
-      return true;
+      return !this.isShiftRightInputDown();
     }
     return this.keyRight.isUp;
   }
 
   isRotateRightInputDown() {
     if (isMobile) {
-      return this.tap.isTapped;
+      return this.tap.isTapped && this.tap.lastPointer.x >= this.gameWidth / 2;
     }
     return this.keyUp.isDown;
   }
 
   isRotateRightInputUp() {
     if (isMobile) {
-      return !this.tap.isTapped;
+      return !this.isRotateRightInputDown();
     }
     return this.keyUp.isUp;
+  }
+
+  isRotateLeftInputDown() {
+    if (isMobile) {
+      return this.tap.isTapped && this.tap.lastPointer.x < this.gameWidth / 2;
+    }
+    return this.keyZ.isDown;
+  }
+
+  isRotateLeftInputUp() {
+    if (isMobile) {
+      return !this.isRotateLeftInputDown();
+    }
+    return this.keyZ.isUp;
   }
 
   isHardDropInputDown() {
@@ -1051,6 +1068,16 @@ class Game extends Phaser.Scene {
     if (this.isRotateRightInputUp()) {
       // rotating requires key lifts
       this.isRotating = false;
+    }
+  }
+
+  handleRotateLeft() {
+    if (this.isRotateLeftInputDown()) {
+      this.rotateLeft();
+    }
+
+    if (this.isRotateLeftInputUp()) {
+      this.isRotatingLeft = false;
     }
   }
 
@@ -1234,6 +1261,46 @@ class Game extends Phaser.Scene {
     rotatedTetromino.shape.destroy();
     this.updateLockCountersForMove();
     this.isRotating = true;
+  }
+
+  rotateLeft() {
+    if (this.isRotatingLeft) {
+      return;
+    }
+
+    const rotationOffset = -1;
+    const rotatedTetromino = this.cloneTetromino(
+      this.tetromino,
+      rotationOffset
+    );
+
+    const tetrominoWallkickData = this.assetLoader.getWallkick(
+      this.tetromino.name
+    );
+    const wallkickKey =
+      this.tetromino.rotation + ":" + rotatedTetromino.rotation;
+    const wallkickOffsets = tetrominoWallkickData[wallkickKey];
+    for (const offset of wallkickOffsets) {
+      const shiftedTetromino = this.cloneTetromino(rotatedTetromino, 0);
+      shiftedTetromino.shape.x += offset.x * this.dimensions.mino.width;
+      shiftedTetromino.shape.y += offset.y * this.dimensions.mino.height;
+      const canMove = this.canMove(shiftedTetromino.shape);
+      if (canMove) {
+        this.tetromino.shape.destroy();
+        this.tetromino = shiftedTetromino;
+        this.tetromino.shape.x = shiftedTetromino.shape.x;
+        this.tetromino.shape.y = shiftedTetromino.shape.y;
+        this.updateGhostTetromino();
+        this.soundPlayer.rotate();
+        break;
+      } else {
+        shiftedTetromino.shape.destroy();
+      }
+    }
+
+    rotatedTetromino.shape.destroy();
+    this.updateLockCountersForMove();
+    this.isRotatingLeft = true;
   }
 
   isOnALockedTetromino() {

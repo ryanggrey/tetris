@@ -60,7 +60,7 @@ Icons taken from:
 - [x] Right/left static tetromino collision
 - [x] Right rotation
 - [x] Disallow auto rotate
-- [ ] Left rotation
+- [x] Left rotation
 - [x] Wall kicks
 - [x] Soft drop
 - [x] Soft drop - score
@@ -98,7 +98,7 @@ Icons taken from:
 - [ ] Hold tetromino
 - [ ] Switch held tetromino
 - [ ] Don't assume 60fps
-- [in-progress] Mobile controls
+- [x] Mobile controls
 - [x] Mobile layout/rendering
 - [x] Unit tests
 - [x] Web hosting
