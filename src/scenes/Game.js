@@ -133,6 +133,12 @@ class Game extends Phaser.Scene {
     this.updateNextSection();
     this.spawnTetromino();
     this.gameOver = false;
+
+    const loading = document.getElementById("loading");
+    if (loading) {
+      loading.classList.add("hidden");
+      setTimeout(() => loading.remove(), 300);
+    }
   }
 
   createScoreSection() {

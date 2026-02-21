@@ -6,4 +6,6 @@ new Phaser.Game(Object.assign(config, {
   scene: [GameScene],
 }));
 
-document.getElementById("commit-badge").textContent = COMMIT_SHA.slice(0, 7);
+const badge = document.getElementById("commit-badge");
+badge.textContent = COMMIT_SHA.slice(0, 7);
+badge.href = "https://github.com/ryanggrey/tetris/commit/" + COMMIT_SHA;

@@ -10,15 +10,65 @@
     body {
       margin: 0;
       padding: 0;
-      background-color: black;
+      background-color: #D6EEFF;
+    }
+
+    #loading {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #D6EEFF;
+      z-index: 10000;
+      transition: opacity 0.3s;
+    }
+
+    #loading.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .tetromino {
+      width: 60px;
+      height: 40px;
+      position: relative;
+      animation: spin 1s linear infinite;
+    }
+
+    .tetromino .block {
+      width: 20px;
+      height: 20px;
+      background: #922CE7;
+      border: 2px solid #481173;
+      box-sizing: border-box;
+      position: absolute;
+    }
+
+    .tetromino .b1 { left: 20px; top: 0; }
+    .tetromino .b2 { left: 0; top: 20px; }
+    .tetromino .b3 { left: 20px; top: 20px; }
+    .tetromino .b4 { left: 40px; top: 20px; }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
     }
   </style>
 </head>
 
 <body>
 
+  <div id="loading">
+    <div class="tetromino">
+      <div class="block b1"></div>
+      <div class="block b2"></div>
+      <div class="block b3"></div>
+      <div class="block b4"></div>
+    </div>
+  </div>
   <div id="game"></div>
-  <div id="commit-badge" style="position:fixed;bottom:8px;right:8px;font-size:10px;color:#aaa;font-family:monospace;z-index:9999;background:rgba(0,0,0,0.5);padding:2px 6px;border-radius:4px;"></div>
+  <a id="commit-badge" target="_blank" rel="noopener" style="position:fixed;bottom:8px;right:8px;font-size:10px;color:#aaa;font-family:monospace;z-index:9999;background:rgba(0,0,0,0.5);padding:2px 6px;border-radius:4px;text-decoration:none;"></a>
 
 </body>
 
