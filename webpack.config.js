@@ -5,9 +5,11 @@ const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 
 module.exports = (env, argv) => ({
+  output: {
+    path: path.resolve(__dirname, "./dist"),
+  },
   entry: {
     app: path.resolve(__dirname, "./src/index.js"),
-    vendor: ["phaser"],
   },
   devtool: argv.mode === "development" ? "eval-source-map" : false,
   module: {
@@ -43,13 +45,8 @@ module.exports = (env, argv) => ({
     new HtmlWebPackPlugin({
       template: "./src/index.html",
       filename: "./index.html",
-      chunks: ["vendor", "app"],
+      chunks: ["app"],
       chunksSortMode: "manual",
     }),
   ],
-  optimization: {
-    splitChunks: {
-      chunks: "all",
-    },
-  },
 });
