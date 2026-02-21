@@ -9,7 +9,7 @@ module.exports = (env, argv) => ({
     app: path.resolve(__dirname, "./src/index.js"),
     vendor: ["phaser"],
   },
-  devtool: argv.mode === "development" ? "eval-source-map" : "none",
+  devtool: argv.mode === "development" ? "eval-source-map" : false,
   module: {
     rules: [
       {
@@ -49,7 +49,6 @@ module.exports = (env, argv) => ({
   ],
   optimization: {
     splitChunks: {
-      name: "vendor",
       chunks: "all",
     },
   },
