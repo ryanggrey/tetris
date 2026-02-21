@@ -6,4 +6,4 @@ new Phaser.Game(Object.assign(config, {
   scene: [GameScene],
 }));
 
-document.getElementById("commit-badge").textContent = COMMIT_SHA;
+document.getElementById("commit-badge").textContent = COMMIT_SHA.slice(0, 7);
