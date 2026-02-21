@@ -39,6 +39,7 @@ module.exports = (env, argv) => ({
       DEV: argv.mode === "development",
       WEBGL_RENDERER: true,
       CANVAS_RENDERER: true,
+      COMMIT_SHA: JSON.stringify(process.env.COMMIT_SHA || "dev"),
     }),
     new CleanWebpackPlugin(),
     new CopyWebpackPlugin({ patterns: [{ from: "assets", to: "assets" }] }),
